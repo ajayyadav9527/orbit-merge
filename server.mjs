@@ -25,7 +25,7 @@ const server=createServer(async(req,res)=>{const url=new URL(req.url,'http://loc
  }
  if(url.pathname.startsWith('/api/')){if(req.method!=='POST')return respond(405,{error:'Method not allowed'});if(!live)return respond(503,{error:'Purchases are not live yet. Enjoy free play.'});if(req.headers.origin&&req.headers.origin!==origin)return respond(403,{error:'Origin not allowed'});const user=verifyInitData(req.headers['x-telegram-init-data'],token);rate(user.id);const body=await json(req);
  if(url.pathname==='/api/account')return respond(200,balance(db,user.id));
- if(url.pathname==='/api/consume')return respond(200,consume(db,user.id,body.kind));
+ if(url.pathname==='/api/consume')return respond(200,consume(db,user.id,body.kind,body.request_id));
  if(url.pathname==='/api/invoice'){const o=order(db,user.id,body.product);const link=await bot('createInvoiceLink',{title:o.title,description:o.description,payload:o.key,provider_token:'',currency:'XTR',prices:[{label:o.title,amount:o.price}]});return respond(200,{url:link});}
  return respond(404,{error:'Not found'});}
  if(req.method!=='GET'&&req.method!=='HEAD')return respond(405,{error:'Method not allowed'});

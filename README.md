@@ -15,4 +15,4 @@ Ads: intentionally disabled. Connect an approved rewarded-ad publisher placement
 
 Privacy: practice board/records live in localStorage. Server stores Telegram IDs, purchases, and paid inventory in SQLite. Choose retention and deletion policies before public launch. There is no tracking SDK. Personal device scores are not trusted competitive rankings.
 
-Limitations: paid booster use is server debited but the practice board is browser-local; a lost response may consume a booster without applying the move. Move paid gameplay state server-side before large-scale commercial launch. No global leaderboard or cash prizes. Revenue and retention have not been validated with users.
+Booster consumption uses a persistent action ID and a saved board snapshot, so interrupted requests can be retried without spending twice. Recovery depends on keeping this browser's local storage. Move paid gameplay state server-side before competitive modes or large-scale commercial launch. No global leaderboard or cash prizes. Revenue and retention have not been validated with users.
