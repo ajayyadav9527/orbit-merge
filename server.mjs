@@ -7,7 +7,7 @@ import {timingSafeEqual} from 'node:crypto';
 import {verifyInitData,schema,balance,order,validOrder,settle,consume} from './payments.mjs';
 const root=dirname(fileURLToPath(import.meta.url)),token=process.env.TELEGRAM_BOT_TOKEN||'',hook=process.env.TELEGRAM_WEBHOOK_SECRET||'',origin=process.env.PUBLIC_ORIGIN||'',support=process.env.SUPPORT_USERNAME||'';
 const live=!!(token&&hook&&/^https:\/\//.test(origin)&&/^[A-Za-z0-9_]{5,32}$/.test(support));
-await mkdir(resolve(root,'data'),{recursive:true});const db=new DatabaseSync(resolve(root,'data/orbit.sqlite'));schema(db);
+const dataDir=resolve(process.env.DATA_DIR||resolve(root,'data'));await mkdir(dataDir,{recursive:true});const db=new DatabaseSync(resolve(dataDir,'orbit.sqlite'));schema(db);
 async function bot(method,payload){const r=await fetch(`https://api.telegram.org/bot${token}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(8000)});const j=await r.json();if(!r.ok||!j.ok)throw new Error('Telegram service unavailable. Please try again.');return j.result;}
 async function json(req){let s='';for await(const chunk of req){s+=chunk;if(s.length>24000)throw new Error('Request too large.');}return s?JSON.parse(s):{};}
 const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
@@ -31,4 +31,5 @@ const server=createServer(async(req,res)=>{const url=new URL(req.url,'http://loc
  if(req.method!=='GET'&&req.method!=='HEAD')return respond(405,{error:'Method not allowed'});
  const files={'/':'index.html','/index.html':'index.html','/style.css':'style.css','/app.js':'app.js','/engine.js':'engine.js'};const name=files[url.pathname];if(!name)return respond(404,{error:'Not found'});const file=await readFile(resolve(root,'dist',name));res.writeHead(200,{'content-type':mime[extname(name)],'x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin','content-security-policy':"default-src 'self'; script-src 'self' https://telegram.org; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'",'cache-control':'no-cache'});res.end(req.method==='HEAD'?undefined:file);
  }catch(e){if(url.pathname==='/telegram/webhook'){console.error('Webhook processing failed; Telegram should retry.');return respond(500,{error:'Processing failed'});}respond(400,{error:e.message});}});
-server.listen(Number(process.env.PORT)||4173,'127.0.0.1',()=>console.log(`Orbit Merge running at http://127.0.0.1:${Number(process.env.PORT)||4173} · purchases ${live?'configured':'disabled'}`));
+server.listen(Number(process.env.PORT)||4173,process.env.HOST||'127.0.0.1',()=>console.log(`Orbit Merge listening on port ${Number(process.env.PORT)||4173} · purchases ${live?'configured':'disabled'}`));
+function shutdown(){server.close(()=>{db.close();process.exit(0);});setTimeout(()=>process.exit(1),10000).unref();}process.once('SIGTERM',shutdown);process.once('SIGINT',shutdown);
