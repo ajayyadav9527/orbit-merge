@@ -1,0 +1,18 @@
+import {createHmac,timingSafeEqual,randomUUID} from 'node:crypto';
+export const PRODUCTS={undos:{title:'Second chances',description:'5 undos for Orbit Merge',price:25,quantity:5},rescues:{title:'Room to breathe',description:'3 rescues for Orbit Merge',price:50,quantity:3}};
+export function verifyInitData(raw,token,now=Date.now()){
+ if(!raw||!token)throw new Error('Open the game inside Telegram to use purchases.');
+ const p=new URLSearchParams(raw),hash=p.get('hash');if(!hash||!/^[a-f0-9]{64}$/.test(hash))throw new Error('Invalid Telegram authentication.');
+ const keys=[...p.keys()];if(new Set(keys).size!==keys.length)throw new Error('Invalid Telegram authentication.');p.delete('hash');
+ const check=[...p.entries()].sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>`${k}=${v}`).join('\n');
+ const secret=createHmac('sha256','WebAppData').update(token).digest(),expected=createHmac('sha256',secret).update(check).digest();
+ if(!timingSafeEqual(expected,Buffer.from(hash,'hex')))throw new Error('Invalid Telegram authentication.');
+ const age=Math.floor(now/1000)-Number(p.get('auth_date'));if(!Number.isFinite(age)||age< -30||age>3600)throw new Error('Telegram session expired. Reopen the game.');
+ const user=JSON.parse(p.get('user')||'null');if(!Number.isSafeInteger(user?.id)||user.id<=0)throw new Error('Invalid Telegram user.');return user;
+}
+export function schema(db){db.exec(`PRAGMA journal_mode=WAL; CREATE TABLE IF NOT EXISTS accounts(user_id INTEGER PRIMARY KEY,undos INTEGER NOT NULL DEFAULT 0,rescues INTEGER NOT NULL DEFAULT 0);CREATE TABLE IF NOT EXISTS orders(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL,product TEXT NOT NULL,amount INTEGER NOT NULL,created INTEGER NOT NULL,paid INTEGER NOT NULL DEFAULT 0,charge TEXT UNIQUE);`);}
+export function balance(db,id){db.prepare('INSERT OR IGNORE INTO accounts(user_id) VALUES (?)').run(id);return db.prepare('SELECT undos,rescues FROM accounts WHERE user_id=?').get(id);}
+export function order(db,id,product){const p=PRODUCTS[product];if(!p)throw new Error('Unknown booster.');const key=randomUUID();db.prepare('INSERT INTO orders(id,user_id,product,amount,created) VALUES(?,?,?,?,?)').run(key,id,product,p.price,Date.now());return {key,...p};}
+export function validOrder(db,payload,user,currency,amount){const o=db.prepare('SELECT * FROM orders WHERE id=?').get(payload);return !!o&&o.user_id===user&&currency==='XTR'&&o.amount===amount&&!o.paid;}
+export function settle(db,payment,user){db.exec('BEGIN IMMEDIATE');try{const o=db.prepare('SELECT * FROM orders WHERE id=?').get(payment.invoice_payload);if(!o||o.user_id!==user||payment.currency!=='XTR'||payment.total_amount!==o.amount)throw new Error('Payment does not match an order.');if(o.paid){if(o.charge!==payment.telegram_payment_charge_id)throw new Error('Conflicting payment.');db.exec('COMMIT');return false;}const p=PRODUCTS[o.product];balance(db,user);db.prepare(`UPDATE accounts SET ${o.product}=${o.product}+? WHERE user_id=?`).run(p.quantity,user);db.prepare('UPDATE orders SET paid=1,charge=? WHERE id=?').run(payment.telegram_payment_charge_id,o.id);db.exec('COMMIT');return true;}catch(e){db.exec('ROLLBACK');throw e;}}
+export function consume(db,user,kind){if(!Object.hasOwn(PRODUCTS,kind))throw new Error('Unknown booster.');balance(db,user);const r=db.prepare(`UPDATE accounts SET ${kind}=${kind}-1 WHERE user_id=? AND ${kind}>0`).run(user);if(!r.changes)throw new Error('No boosters left. Find optional boosters in the shop.');return balance(db,user);}
