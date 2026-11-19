@@ -1,8 +1,9 @@
 import {W,H,newGame,nextLevel,available,drop,undo,rescue} from './engine.js';
+import {completedReward,showRewarded} from './ads.js';
 const $=s=>document.querySelector(s),tg=window.Telegram?.WebApp;
 const STORAGE='orbit-merge-v1';let stored;try{stored=JSON.parse(localStorage.getItem(STORAGE)||'null');}catch{}
 let game=stored?.game&&Array.isArray(stored.game.board)&&stored.game.board.length===W*H?stored.game:newGame();
-let records=stored?.records||{best:0,largest:0,games:1},freeUndo=stored?.freeUndo??1,account=null,busy=false,config={},pending=stored?.pending||null,adController=null;
+let records=stored?.records||{best:0,largest:0,games:1},freeUndo=stored?.freeUndo??1,account=null,busy=false,config={},pending=stored?.pending||null,adAvailable=false;
 function save(){try{localStorage.setItem(STORAGE,JSON.stringify({game,records,freeUndo,pending}));return true;}catch{$('#status').textContent='Browser storage is unavailable. Progress lasts for this session.';return false;}}
 function planet(level){const el=document.createElement('span');el.className=`planet l${Math.min(level,10)}`;el.textContent=(2**level).toLocaleString();return el;}
 function render(){
@@ -11,7 +12,7 @@ function render(){
  const lanes=$('#lanes');lanes.replaceChildren();for(let c=0;c<W;c++){const b=document.createElement('button');b.className='lane';b.textContent='↓';b.ariaLabel=`Drop in lane ${c+1}`;b.disabled=!available(game,c)||game.over||busy;b.addEventListener('click',()=>play(c));lanes.append(b);}
  for(const [id,offset] of [['next',0],['after',1]]){const n=nextLevel(game,offset),el=$('#'+id);el.className=`planet l${n}${offset?' small':''}`;el.textContent=2**n;}
  const largest=Math.max(0,...game.board);$('#progress').textContent=`${largest?2**largest:0} / 32`;$('#mission').textContent=largest>=5?'Mission complete! How far can you go?':'Your first mission: make a 32 planet';
- $('#undo-count').textContent=freeUndo?'1 free':`${account?.undos||0} left`;$('#undo').disabled=!game.history.length||busy;$('#gameover').hidden=!game.over;$('#rescue').textContent=`Use a rescue (${account?.rescues||0} left)`;$('#rescue').disabled=busy;$('#ad').disabled=busy||!adController||!!game.adUsed;$('#ad').textContent=game.adUsed?'Ad rescue used this orbit':adController?'Watch an ad · rescue this orbit':'Rewarded ad unavailable';
+ $('#undo-count').textContent=freeUndo?'1 free':`${account?.undos||0} left`;$('#undo').disabled=!game.history.length||busy;$('#gameover').hidden=!game.over;$('#rescue').textContent=`Use a rescue (${account?.rescues||0} left)`;$('#rescue').disabled=busy;$('#ad').disabled=busy||!adAvailable||!!game.adUsed;$('#ad').textContent=game.adUsed?'Ad rescue used this orbit':adAvailable?'Watch an ad · rescue this orbit':'Rewarded ad unavailable';
  $('#record-score').textContent=records.best.toLocaleString();$('#record-planet').textContent=records.largest?2**records.largest:'—';$('#record-games').textContent=records.games;save();
 }
 function play(c){if(busy)return;if(pending){$('#status').textContent='Finish your pending booster by pressing its button again.';return;}const result=drop(game,c);if(!result){$('#status').textContent='That lane is full. Try another one.';return;}$('#status').textContent=result.chain>1?`${result.chain}-step chain! A little planning goes a long way.`:result.chain?'A new planet. Nicely placed.':'';try{tg?.HapticFeedback?.impactOccurred(result.chain?'medium':'light');}catch{}render();}
@@ -32,7 +33,6 @@ render();
 try{const r=await fetch('/api/config');if(r.ok)config=await r.json();}catch{}
 if(config.payments&&tg?.initData){try{await refreshAccount();$('#commerce-status').textContent='Telegram Stars · Secure one-time purchases';document.querySelectorAll('.buy').forEach(b=>b.disabled=false);$('#mode').textContent='TELEGRAM';}catch(e){$('#commerce-status').textContent=e.message;}}
 if(pending&&account){busy=true;try{await spend(pending.kind);$('#status').textContent='Your interrupted booster was recovered.';}catch(e){$('#status').textContent=e.message;}finally{busy=false;render();}}
-// Ad rewards affect only this practice board; they never credit paid inventory.
-if(config.ads&&/^\d+$/.test(config.adsBlockId||'')&&tg?.initData){try{await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://sad.adsgram.ai/js/sad.min.js';s.onload=resolve;s.onerror=reject;document.head.append(s);});adController=window.Adsgram.init({blockId:config.adsBlockId,debug:false});render();}catch{$('#status').textContent='Ads are unavailable right now. Free play is always available.';}}
-$('#ad').addEventListener('click',async()=>{if(!adController||busy||!game.over||game.adUsed||pending)return;busy=true;render();try{const result=await adController.show();if(result?.done===true&&result?.error===false){rescue(game);game.adUsed=true;$('#status').textContent='Ad completed. Your orbit has room again.';}else $('#status').textContent='Ad not completed. No rescue was used.';}catch{$('#status').textContent='Ad skipped or unavailable. No rescue was used.';}finally{busy=false;render();}});
-
+// Load the ad provider only after an explicit Watch action.
+adAvailable=!!(config.ads&&/^\d+$/.test(config.adsBlockId||'')&&tg?.initData);render();
+$('#ad').addEventListener('click',async()=>{if(!adAvailable||busy||!game.over||game.adUsed||pending)return;busy=true;render();try{const result=await showRewarded(config.adsBlockId);if(completedReward(result)){rescue(game);game.adUsed=true;$('#status').textContent='Ad completed. Your orbit has room again.';}else $('#status').textContent='Ad not completed. No rescue was used.';}catch{$('#status').textContent='Ad skipped or unavailable. No rescue was used.';}finally{busy=false;render();}});

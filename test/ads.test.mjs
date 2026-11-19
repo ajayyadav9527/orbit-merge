@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {completedReward} from '../dist/ads.js';
+test('only an explicitly completed rewarded ad earns a rescue',()=>{assert.equal(completedReward({done:true,error:false}),true);for(const result of [null,undefined,{}, {done:false,error:false},{done:true,error:true},{done:true},{done:'true',error:false}])assert.equal(completedReward(result),false);});

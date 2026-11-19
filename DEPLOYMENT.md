@@ -1,4 +1,12 @@
-# Live payment service deployment
+# Production deployment
+
+Production now uses the existing Sites host as a Worker with managed D1. No separate Railway account or paid server was provisioned. Run `npm run build`, synchronize source using the Sites workflow, save the matching archive, and deploy the saved version. Keep `d1: "DB"` in .openai/hosting.json. Applied SQL migrations are immutable. Runtime secrets live in Sites, never in this repository.
+
+Production variables: TELEGRAM_BOT_TOKEN (secret), TELEGRAM_WEBHOOK_SECRET (secret), OWNER_CHAT_ID (secret), PUBLIC_ORIGIN, PAYMENTS_ENABLED, ADS_ENABLED and ADSGRAM_BLOCK_ID. Ads must stay disabled until the publisher placement is approved. Register the bot webhook with secret_token matching TELEGRAM_WEBHOOK_SECRET. /health and /api/config expose non-secret readiness information only.
+
+The deployed Stars connection has been verified through a signed account request, real invoice creation, invalid-signature rejection, and the bot welcome response. No charge was made and no live successful_payment event has been claimed.
+
+## Optional Node/Docker fallback
 
 The public Sites page serves free practice. This Docker deployment serves the same game plus the Stars API and webhook. It has no npm dependencies. Node 24 is required for SQLite.
 
@@ -12,4 +20,4 @@ The public Sites page serves free practice. This Docker deployment serves the sa
 
 Ads require a separate approved publisher account and real rewarded placement. Keep them disabled until completion can be verified without crediting skipped or failed ads. This release does not contain a live ad SDK.
 
-Container definition is prepared; no container build, hosted backend deployment, or live payment transaction has yet been verified.
+The optional container definition is prepared; its build is unverified here because Docker is unavailable. The Worker backend is deployed, while a paid transaction remains unverified.
