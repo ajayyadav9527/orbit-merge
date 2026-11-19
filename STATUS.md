@@ -8,6 +8,6 @@
 - Rewarded ads are unavailable until an approved publisher placement and verified reward delivery are configured. No ad income is currently enabled.
 - Revenue is a hypothesis. Run retention and conversion experiments before paid acquisition.
 - Bot access key remains in BotFather; no bot key is placed in repository source or static assets.
-- Telegram launch reached a cached hosting-login page. The owner stopped computer control during the login/passkey flow; an in-Telegram gameplay test is still unverified. No further computer control was attempted after that stop.
+- After the owner requested another test, the public Mini App opened inside Telegram without login. Verified a drop, 2+2 merging to 4, free undo restoring a 2, records showing a best score of 4, and the shop correctly disabling purchases. Closing and reopening the Mini App retained the best score and board progress. Live payments and ads remain untested and disabled.
 - A Dockerfile, persistent-data configuration, and Railway deployment instructions are prepared. The container build is unverified because Docker is unavailable here.
 - Current external blockers: Railway remains uninstalled/unconnected; no approved ad publisher placement is configured; owner support contact and a live payment test remain outstanding. The live config explicitly reports payments=false and ads=false.
