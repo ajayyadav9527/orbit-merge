@@ -36,7 +36,8 @@ async function body(req){const text=await req.text();if(text.length>24000)throw 
 function configured(env){return !!(env.DB&&env.TELEGRAM_BOT_TOKEN&&env.TELEGRAM_WEBHOOK_SECRET&&/^https:\/\//.test(env.PUBLIC_ORIGIN||'')&&/^\d+$/.test(env.OWNER_CHAT_ID||''));}
 const requests=new Map();function throttle(user){const now=Date.now(),old=requests.get(user)||{at:now,n:0};if(now-old.at>60000){old.at=now;old.n=0;}if(++old.n>30)throw new Error('Too many requests. Wait a minute.');requests.set(user,old);if(requests.size>5000)for(const [k,v] of requests)if(now-v.at>60000)requests.delete(k);}
 export function makeWorker(assets){return {async fetch(req,env){const url=new URL(req.url),ready=configured(env),live=ready&&env.PAYMENTS_ENABLED==='true';try{
- if(req.method==='GET'&&url.pathname==='/api/config')return json({payments:live,botUsername:'OrbitMergeAjayBot',ads:env.ADS_ENABLED==='true'&&/^\d+$/.test(env.ADSGRAM_BLOCK_ID||''),adsBlockId:env.ADS_ENABLED==='true'?env.ADSGRAM_BLOCK_ID:null});
+ const monetag=env.ADS_ENABLED==='true'&&env.AD_PROVIDER==='monetag'&&/^\d+$/.test(env.MONETAG_ZONE||'')&&/^https:\/\//.test(env.MONETAG_SDK_URL||'') ? {zone:env.MONETAG_ZONE,scriptUrl:env.MONETAG_SDK_URL} : null;
+ if(req.method==='GET'&&url.pathname==='/api/config')return json({payments:live,botUsername:'OrbitMergeAjayBot',monetag,ads:env.AD_PROVIDER!=='monetag'&&env.ADS_ENABLED==='true'&&/^\d+$/.test(env.ADSGRAM_BLOCK_ID||''),adsBlockId:env.ADS_ENABLED==='true'?env.ADSGRAM_BLOCK_ID:null});
  if(req.method==='GET'&&url.pathname==='/health')return json({ok:true,storage:!!env.DB,paymentsConfigured:ready,paymentsEnabled:live});
  if(url.pathname==='/telegram/webhook'&&req.method==='POST'){
  if(!ready||!equal(req.headers.get('x-telegram-bot-api-secret-token')||'',env.TELEGRAM_WEBHOOK_SECRET))return json({error:'Forbidden'},403);

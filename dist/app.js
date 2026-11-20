@@ -1,5 +1,5 @@
 import {W,H,newGame,nextLevel,available,drop,undo,rescue} from './engine.js';
-import {completedReward,showRewarded} from './ads.js';
+import {completedReward,showRewarded,completedMonetagReward,showMonetagRewarded} from './ads.js';
 const $=s=>document.querySelector(s),tg=window.Telegram?.WebApp;
 const STORAGE='orbit-merge-v1';let stored;try{stored=JSON.parse(localStorage.getItem(STORAGE)||'null');}catch{}
 let game=stored?.game&&Array.isArray(stored.game.board)&&stored.game.board.length===W*H?stored.game:newGame();
@@ -34,5 +34,5 @@ try{const r=await fetch('/api/config');if(r.ok)config=await r.json();}catch{}
 if(config.payments&&tg?.initData){try{await refreshAccount();$('#commerce-status').textContent='Telegram Stars · Secure one-time purchases';document.querySelectorAll('.buy').forEach(b=>b.disabled=false);$('#mode').textContent='TELEGRAM';}catch(e){$('#commerce-status').textContent=e.message;}}
 if(pending&&account){busy=true;try{await spend(pending.kind);$('#status').textContent='Your interrupted booster was recovered.';}catch(e){$('#status').textContent=e.message;}finally{busy=false;render();}}
 // Load the ad provider only after an explicit Watch action.
-adAvailable=!!(config.ads&&/^\d+$/.test(config.adsBlockId||'')&&tg?.initData);render();
-$('#ad').addEventListener('click',async()=>{if(!adAvailable||busy||!game.over||game.adUsed||pending)return;busy=true;render();try{const result=await showRewarded(config.adsBlockId);if(completedReward(result)){rescue(game);game.adUsed=true;$('#status').textContent='Ad completed. Your orbit has room again.';}else $('#status').textContent='Ad not completed. No rescue was used.';}catch{$('#status').textContent='Ad skipped or unavailable. No rescue was used.';}finally{busy=false;render();}});
+adAvailable=!!((config.monetag||config.ads&&/^\d+$/.test(config.adsBlockId||''))&&tg?.initData);render();
+$('#ad').addEventListener('click',async()=>{if(!adAvailable||busy||!game.over||game.adUsed||pending)return;busy=true;render();try{const completed=config.monetag?completedMonetagReward(await showMonetagRewarded(config.monetag)):completedReward(await showRewarded(config.adsBlockId));if(completed){rescue(game);game.adUsed=true;$('#status').textContent='Ad completed. Your orbit has room again.';}else $('#status').textContent='Ad not completed. No rescue was used.';}catch{$('#status').textContent='Ad skipped or unavailable. No rescue was used.';}finally{busy=false;render();}});
