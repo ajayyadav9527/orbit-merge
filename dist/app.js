@@ -26,7 +26,65 @@ $('#new').addEventListener('click',()=>{if(game.drops&&!game.over){if(!confirm('
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!==b.dataset.view);document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('selected',t===b);if(t===b)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');});}));
 $('#help').addEventListener('click',()=>$('#help-dialog').showModal());$('#close-help').addEventListener('click',()=>$('#help-dialog').close());
 $('#share').addEventListener('click',async()=>{const url=config.botUsername?`https://t.me/${config.botUsername}?startapp=play`:location.origin;const text='A little space to play. Try Orbit Merge!';if(tg?.initData)tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);else if(navigator.share){try{await navigator.share({title:'Orbit Merge',text,url});}catch{}}else{try{await navigator.clipboard.writeText(url);$('#share').textContent='Game link copied';}catch{$('#share').textContent='Copy the URL from your address bar';}}});
-document.querySelectorAll('[data-product]').forEach(b=>b.addEventListener('click',async()=>{if(busy)return;busy=true;b.disabled=true;$('#shop-status').textContent='Creating your Stars invoice…';try{const {url}=await api('invoice',{product:b.dataset.product});tg.openInvoice(url,async status=>{busy=false;document.querySelectorAll('.buy').forEach(x=>x.disabled=false);$('#shop-status').textContent=status==='paid'?'Payment received. Confirming your boosters…':status==='cancelled'?'Purchase cancelled. Nothing was added.':'Payment pending or unsuccessful. Check again in a moment.';if(status==='paid'){for(let i=0;i<5;i++){try{await refreshAccount();}catch{}await new Promise(r=>setTimeout(r,1200));}$('#shop-status').textContent='Your account is up to date. For payment help, use /paysupport.';}});}catch(e){busy=false;b.disabled=false;$('#shop-status').textContent=e.message;}}));
+const purchaseStorage = 'orbit-merge-pending-order';
+let pendingPurchase;
+try { pendingPurchase = localStorage.getItem(purchaseStorage); } catch {}
+
+function rememberPurchase(orderId) {
+ pendingPurchase = orderId;
+ try {
+  if (orderId) localStorage.setItem(purchaseStorage, orderId);
+  else localStorage.removeItem(purchaseStorage);
+ } catch {}
+}
+
+async function checkPurchase(orderId, attempts = 1) {
+ const status = $('#shop-status');
+ for (let attempt = 0; attempt < attempts; attempt++) {
+  try {
+   if ((await api('order', {orderId})).paid) {
+    await refreshAccount();
+    if (pendingPurchase === orderId) rememberPurchase(null);
+    status.textContent = 'Purchase confirmed. Boosters added to your balance.';
+    return;
+   }
+  } catch {}
+  if (attempt + 1 < attempts) await new Promise(resolve => setTimeout(resolve, 1200));
+ }
+ status.textContent = 'Awaiting confirmation. Check status again or contact payment support with your Telegram receipt.';
+}
+
+const buyButtons = [...document.querySelectorAll('[data-product]')];
+$('#check-purchase').addEventListener('click', () => {
+ if (pendingPurchase) checkPurchase(pendingPurchase);
+ else refreshAccount().catch(error => { $('#shop-status').textContent = error.message; });
+});
+for (const button of buyButtons) {
+ button.addEventListener('click', async () => {
+  if (busy) return;
+  busy = true;
+  buyButtons.forEach(item => item.disabled = true);
+  const status = $('#shop-status');
+  const unlock = () => { busy = false; buyButtons.forEach(item => item.disabled = false); };
+  status.textContent = 'Opening Telegram Stars checkout…';
+  try {
+   const {url, orderId} = await api('invoice', {product: button.dataset.product});
+   tg.openInvoice(url, async result => {
+    if (result === 'paid' || result === 'pending') {
+     rememberPurchase(orderId);
+     status.textContent = 'Checking payment confirmation…';
+     try { await checkPurchase(orderId, 6); } finally { unlock(); }
+    } else {
+     status.textContent = result === 'cancelled' ? 'Purchase cancelled.' : 'Checkout did not complete.';
+     unlock();
+    }
+   });
+  } catch (error) {
+   status.textContent = error.message;
+   unlock();
+  }
+ });
+}
 window.addEventListener('keydown',e=>{if($('#play').hidden||$('#help-dialog').open)return;if(/^[1-5]$/.test(e.key))play(Number(e.key)-1);});
 try{tg?.ready();tg?.expand();tg?.setHeaderColor('#f3f6fc');tg?.setBackgroundColor('#f3f6fc');}catch{}
 render();

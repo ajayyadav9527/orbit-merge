@@ -59,10 +59,16 @@ export function makeWorker(assets){return {async fetch(req,env){const url=new UR
  if(req.method!=='POST')return json({error:'Method not allowed'},405);if(!ready)return json({error:'Purchases are not available yet. Enjoy free play.'},503);if(req.headers.get('origin')&&req.headers.get('origin')!==env.PUBLIC_ORIGIN)return json({error:'Origin not allowed'},403);
  const user=await identity(req.headers.get('x-telegram-init-data'),env.TELEGRAM_BOT_TOKEN);throttle(user.id);const data=await body(req);
  if(url.pathname==='/api/account')return json(await balance(env.DB,user.id));
+ if(url.pathname==='/api/order'){
+  if(typeof data.orderId!=='string'||data.orderId.length!==36)return json({error:'Invalid order reference.'},400);
+  const purchase=await env.DB.prepare('SELECT paid FROM orders WHERE id=? AND user_id=?').bind(data.orderId,user.id).first();
+  if(!purchase)return json({error:'Order not found.'},404);
+  return json({paid:purchase.paid===1});
+ }
  if(url.pathname==='/api/consume')return json(await consume(env.DB,user.id,data.kind,data.request_id));
  if(url.pathname==='/api/invoice'){
  if(!live)return json({error:'Purchases are not enabled yet.'},503);const p=Object.hasOwn(products,data.product)?products[data.product]:null;if(!p)throw new Error('Unknown booster.');const key=crypto.randomUUID();await env.DB.prepare('INSERT INTO orders(id,user_id,product,amount,created) VALUES(?,?,?,?,?)').bind(key,user.id,data.product,p.price,Date.now()).run();
- const link=await bot(env,'createInvoiceLink',{title:p.title,description:p.description,payload:key,provider_token:'',currency:'XTR',prices:[{label:p.title,amount:p.price}]});return json({url:link});}
+ const link=await bot(env,'createInvoiceLink',{title:p.title,description:p.description,payload:key,provider_token:'',currency:'XTR',prices:[{label:p.title,amount:p.price}]});return json({url:link,orderId:key});}
  return json({error:'Not found'},404);}
  const asset=assets[url.pathname==='/'?'/index.html':url.pathname];if(!asset)return json({error:'Not found'},404);if(!['GET','HEAD'].includes(req.method))return json({error:'Method not allowed'},405);
  return new Response(req.method==='HEAD'?null:asset.body,{headers:{'content-type':asset.type,'cache-control':'no-cache','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin'}});
