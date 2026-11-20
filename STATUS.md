@@ -1,21 +1,25 @@
-# Delivery state - Enhanced Release
+# Delivery state - Production Cloud Release (GitHub Pages)
 
-- **Dedicated Telegram Bot**: Active & configured at `@OrbitMergeAjayBot`.
-- **BotFather Synchronization**: Both the persistent Menu Button (`setChatMenuButton`) and named Mini App URL (`/play`) are verified and updated.
-- **Hosted Endpoints**:
-  - Live Public HTTPS Endpoint: `https://potentially-butter-republic-jelsoft.trycloudflare.com`
-  - Fallback/Sites Origin: `https://orbit-merge-ajay.driednacre128.chatgpt.site`
-- **New Feature Enhancements**:
-  - **Procedural Web Audio Engine**: Zero-asset, synthesized Web Audio sound FX (soft drop thud, harmonic merge scale chords, cascade pitch multipliers, victory fanfare, and a header mute/unmute toggle).
-  - **Ghost Drop Preview**: Real-time calculated column drop slot indicator (`targetRow`) preventing misclicks.
-  - **Cosmic Shuffle Booster**: Gravitational Vortex feature (`shuffle(g)`) allowing players to stir crowded boards; includes 1 free shuffle per orbit and optional Stars purchase (25 ★).
-  - **Dynamic Orbital Missions**: 6-tier milestone progression questline granting free booster rewards upon achieving goals (e.g. Discover 32, Trigger 2-chain cascade, Discover 128, Score 1,000, 3,000, and 2048 Star).
-  - **Daily Orbit Supply (Rewarded Ad Monetization)**: 100% opt-in daily mystery booster reward in shop powered by Monetag Rewarded Interstitials.
-  - **Visual Customization Themes**: Dynamic client switcher for **Nebula** (Classic), **Cyber** (Neon), and **Solar** (Amber).
-  - **Enhanced Telegram Share Cards**: Rich emoji-formatted achievement summaries with deep links.
-- **Verification & Integrity**:
-  - **14 / 14 Automated Tests Passing**: Game logic, shuffle gravity invariance, target row calculation, HMAC-SHA256 initData validation, duplicate transaction rollback, and idempotent booster grants.
-  - **Live In-Telegram Testing**: Verified inside Telegram Web (`@OrbitMergeAjayBot`) with live authenticated `tgWebAppData` session. Drop mechanics, 2-step cascade ($2+2 \to 4 \to 8$), audio toggle, mission progression, and shop daily supply claim all executed with zero errors.
-- **Build Artifacts**:
-  - Production worker bundle synchronized via `node build-worker.mjs` $\to$ [`dist/server/index.js`](file:///C:/Users/Ajay.AJAY/OneDrive/Desktop/test_video/orbit-merge/dist/server/index.js).
-  - Git version: `cf1b73f` on `main`.
+- **Permanent 24/7 Production URL**: `https://ajayyadav9527.github.io/orbit-merge/`
+- **GitHub Repository**: `https://github.com/ajayyadav9527/orbit-merge` (Public, `main` branch)
+- **Zero Local Dependencies**: Deployed globally across Fastly CDN with HTTPS enforced. Local PC and daemons are not required.
+
+### Multi-Platform Integrations
+- **Telegram Mini App**:
+  - Dedicated Bot: `@OrbitMergeAjayBot` ([t.me/OrbitMergeAjayBot](https://t.me/OrbitMergeAjayBot))
+  - Menu Button & `/play` URL: `https://ajayyadav9527.github.io/orbit-merge/`
+  - Direct Mini App Link: [t.me/OrbitMergeAjayBot/play](https://t.me/OrbitMergeAjayBot/play)
+- **Discord Activity (Embedded App)**:
+  - Application Name: `Orbit Merge` (Application ID: `1573288869858902087`)
+  - Embedded App Root URL: `https://ajayyadav9527.github.io/orbit-merge/`
+  - Install Link: [Add Orbit Merge to Discord](https://discord.com/oauth2/authorize?client_id=1573288869858902087)
+  - Playable in any Discord voice channel, text channel, or DM via the App Launcher (🚀).
+
+### Gameplay & Monetization Features
+- **Procedural Web Audio Engine**: Synthesized chords, cascade combo pitch escalations, fanfare, and audio toggle (🔊/🔇).
+- **Ghost Drop Preview**: Real-time `targetRow(g, c)` calculation to prevent lane misclicks.
+- **Cosmic Shuffle Booster**: Gravitational Vortex feature (`shuffle(g)`) allowing players to stir crowded boards (1 free per orbit).
+- **Dynamic Orbital Missions**: 6-tier milestone progression questline granting free booster rewards.
+- **Daily Orbit Supply**: 100% opt-in daily mystery booster reward powered by Monetag Rewarded Interstitials.
+- **Visual Themes**: Instant client theme switcher for **Nebula** (Classic), **Cyber** (Neon), and **Solar** (Amber).
+- **Automated Integrity**: 14 / 14 unit tests pass (`node --test test/*.test.mjs`).
