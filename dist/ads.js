@@ -15,10 +15,22 @@ export async function showMonetagRewarded({zone, scriptUrl}) {
    script.src = source.href;
    script.dataset.zone = zone;
    script.dataset.sdk = functionName;
-   script.onload = () => typeof window[functionName] === 'function'
-    ? resolve(window[functionName])
-    : reject(new Error('Monetag SDK unavailable.'));
-   script.onerror = () => reject(new Error('Monetag SDK failed to load.'));
+   const fail = message => {
+    clearTimeout(timer);
+    script.onload = script.onerror = null;
+    script.remove();
+    reject(new Error(message));
+   };
+   const timer = setTimeout(() => fail('Monetag SDK timed out.'), 6000);
+   script.onload = () => {
+    if (typeof window[functionName] !== 'function') {
+     fail('Monetag SDK unavailable.');
+     return;
+    }
+    clearTimeout(timer);
+    resolve(window[functionName]);
+   };
+   script.onerror = () => fail('Monetag SDK failed to load.');
    document.head.append(script);
   }).catch(error => {
    monetagPromise = null;
