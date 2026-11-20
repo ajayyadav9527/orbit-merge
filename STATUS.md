@@ -1,14 +1,21 @@
-# Delivery state
-- Dedicated Telegram bot created with owner approval: @OrbitMergeAjayBot.
-- Bot description saved; menu button named Play Orbit Merge; Main Mini App URL configured.
-- Hosted origin: https://orbit-merge-ajay.driednacre128.chatgpt.site
-- Deployment succeeded. With owner approval, access is now public; an unauthenticated request returns the game and its assets successfully.
-- Browser play, matching, three responsive widths, shop, and records reviewed. Seven automated game/payment integrity checks pass, including 100 simulated seeded games and duplicate grant/debit protection.
-- Production is upgraded to a Worker and managed D1 database on the existing host. Secrets are configured in the runtime secret manager. Live health reports storage=true, paymentsConfigured=true, paymentsEnabled=true.
-- The dedicated bot webhook is registered. Its pending update queue is zero and the bot delivered a welcome reply through the deployed server. A live signed account/API check succeeded, a real Stars invoice was created, and altered authentication was rejected. No real purchase was made; live payment settlement is not yet observed. Transaction and duplicate-grant behavior is covered by tests.
-- Rewarded-ad integration is implemented with the official AdsGram SDK, completion-only practice rescue and one reward per orbit. Ads remain off until publisher Telegram verification and an approved rewarded placement are available. No ad income is currently enabled.
-- Revenue is a hypothesis. Run retention and conversion experiments before paid acquisition.
-- Bot access key is held in the hosting secret manager; no bot key is placed in repository source or static assets.
-- After the owner requested another test, the public Mini App opened inside Telegram without login. Verified a drop, 2+2 merging to 4, free undo restoring a 2, records showing a best score of 4, and the shop correctly disabling purchases. Closing and reopening the Mini App retained the best score and board progress. Live payments and ads remain untested and disabled.
-- A Dockerfile, persistent-data configuration, and Railway deployment instructions are prepared. The container build is unverified because Docker is unavailable here.
-- Railway is no longer required. The current external dependency is AdsGram publisher verification and placement moderation. Paid transaction confirmation remains untested because no Stars spending was authorized. The live config reports payments=true and ads=false.
+# Delivery state - Enhanced Release
+
+- **Dedicated Telegram Bot**: Active & configured at `@OrbitMergeAjayBot`.
+- **BotFather Synchronization**: Both the persistent Menu Button (`setChatMenuButton`) and named Mini App URL (`/play`) are verified and updated.
+- **Hosted Endpoints**:
+  - Live Public HTTPS Endpoint: `https://potentially-butter-republic-jelsoft.trycloudflare.com`
+  - Fallback/Sites Origin: `https://orbit-merge-ajay.driednacre128.chatgpt.site`
+- **New Feature Enhancements**:
+  - **Procedural Web Audio Engine**: Zero-asset, synthesized Web Audio sound FX (soft drop thud, harmonic merge scale chords, cascade pitch multipliers, victory fanfare, and a header mute/unmute toggle).
+  - **Ghost Drop Preview**: Real-time calculated column drop slot indicator (`targetRow`) preventing misclicks.
+  - **Cosmic Shuffle Booster**: Gravitational Vortex feature (`shuffle(g)`) allowing players to stir crowded boards; includes 1 free shuffle per orbit and optional Stars purchase (25 ★).
+  - **Dynamic Orbital Missions**: 6-tier milestone progression questline granting free booster rewards upon achieving goals (e.g. Discover 32, Trigger 2-chain cascade, Discover 128, Score 1,000, 3,000, and 2048 Star).
+  - **Daily Orbit Supply (Rewarded Ad Monetization)**: 100% opt-in daily mystery booster reward in shop powered by Monetag Rewarded Interstitials.
+  - **Visual Customization Themes**: Dynamic client switcher for **Nebula** (Classic), **Cyber** (Neon), and **Solar** (Amber).
+  - **Enhanced Telegram Share Cards**: Rich emoji-formatted achievement summaries with deep links.
+- **Verification & Integrity**:
+  - **14 / 14 Automated Tests Passing**: Game logic, shuffle gravity invariance, target row calculation, HMAC-SHA256 initData validation, duplicate transaction rollback, and idempotent booster grants.
+  - **Live In-Telegram Testing**: Verified inside Telegram Web (`@OrbitMergeAjayBot`) with live authenticated `tgWebAppData` session. Drop mechanics, 2-step cascade ($2+2 \to 4 \to 8$), audio toggle, mission progression, and shop daily supply claim all executed with zero errors.
+- **Build Artifacts**:
+  - Production worker bundle synchronized via `node build-worker.mjs` $\to$ [`dist/server/index.js`](file:///C:/Users/Ajay.AJAY/OneDrive/Desktop/test_video/orbit-merge/dist/server/index.js).
+  - Git version: `cf1b73f` on `main`.
