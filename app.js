@@ -94,9 +94,18 @@ $('#sound').addEventListener('click',()=>{
  if(on)sfx.drop();
 });
 
+const defaultConfig = {
+ monetag: {
+  zone: '12310273',
+  scriptUrl: 'https://alwingulla.com/88/tag.min.js'
+ },
+ adsterraSmartlink: 'https://www.profitablecpmrate.com/fptf61s1k?key=c6c4c05ef1c8dfb208da70557431b997',
+ monetagSmartlink: 'https://uplcm.com/4/12310259'
+};
+
 let game=stored?.game&&Array.isArray(stored.game.board)&&stored.game.board.length===W*H?stored.game:newGame();
 let records=stored?.records||{best:0,largest:0,games:1,merges:0,missionIdx:0,theme:'default'};
-let freeUndo=stored?.freeUndo??1,freeShuffle=stored?.freeShuffle??1,account=null,busy=false,config={},pending=stored?.pending||null,adAvailable=false;
+let freeUndo=stored?.freeUndo??1,freeShuffle=stored?.freeShuffle??1,account=null,busy=false,config={...defaultConfig},pending=stored?.pending||null,adAvailable=true;
 let hoveredLane=null,lastDropChain=0,lastMergedPos=null,lastScoredPoints=0;
 
 if(records.theme&&records.theme!=='default'){
@@ -318,10 +327,10 @@ function render(){
   el.className=`planet l${n}${offset?' small':''}`;el.textContent=2**n;
  }
 
- $('#undo-count').textContent=freeUndo?'1 free':`${account?.undos||0} left`;
+ $('#undo-count').textContent=freeUndo>1?`${freeUndo} free`:freeUndo?'1 free':`${account?.undos||0} left`;
  $('#undo').disabled=!game.history.length||busy;
 
- $('#shuffle-count').textContent=freeShuffle?'1 free':`${account?.shuffles||0} left`;
+ $('#shuffle-count').textContent=freeShuffle>1?`${freeShuffle} free`:freeShuffle?'1 free':`${account?.shuffles||0} left`;
  $('#shuffle').disabled=game.over||busy||game.board.filter(Boolean).length<2;
 
  $('#gameover').hidden=!game.over;
@@ -525,8 +534,17 @@ $('#daily-supply-btn').addEventListener('click',async()=>{
  try{
   let success=false;
   if(adAvailable){
-   const res=config.monetag?completedMonetagReward(await showMonetagRewarded(config.monetag)):completedReward(await showRewarded(config.adsBlockId));
-   success=!!res;
+   try{
+    const res=config.monetag?completedMonetagReward(await showMonetagRewarded(config.monetag)):completedReward(await showRewarded(config.adsBlockId));
+    success=!!res;
+   }catch{
+    const smartlink=config.monetagSmartlink||config.adsterraSmartlink||defaultConfig.monetagSmartlink;
+    if(smartlink){
+     if(tg?.openLink) tg.openLink(smartlink);
+     else window.open(smartlink,'_blank','noopener,noreferrer');
+     success=true;
+    }
+   }
   }else{
    success=true;
   }
@@ -547,6 +565,34 @@ $('#daily-supply-btn').addEventListener('click',async()=>{
   render();
  }
 });
+
+const sponsorDropBtn=$('#sponsor-drop-btn');
+if(sponsorDropBtn){
+ sponsorDropBtn.addEventListener('click',()=>{
+  if(busy)return;
+  busy=true;
+  sponsorDropBtn.disabled=true;
+  const smartlink=config.adsterraSmartlink||config.monetagSmartlink||defaultConfig.adsterraSmartlink;
+  try{
+   if(tg?.openLink) tg.openLink(smartlink);
+   else window.open(smartlink,'_blank','noopener,noreferrer');
+   const grantUndo=Math.random()<0.5;
+   if(grantUndo) freeUndo++; else freeShuffle++;
+   sfx.fanfare();
+   try{tg?.HapticFeedback?.notificationOccurred('success');}catch{}
+   $('#shop-status').textContent=`🎁 Sponsor Orbit Drop claimed! +1 Free ${grantUndo?'Undo':'Shuffle'} added!`;
+   save();
+   render();
+  }catch{
+   $('#shop-status').textContent='Sponsor link unavailable.';
+  }finally{
+   setTimeout(()=>{
+    busy=false;
+    sponsorDropBtn.disabled=false;
+   },800);
+  }
+ });
+}
 
 $('#share').addEventListener('click',async()=>{
  const url=config.botUsername?`https://t.me/${config.botUsername}?startapp=play`:location.origin;
@@ -616,7 +662,14 @@ try{tg?.ready();tg?.expand();tg?.setHeaderColor('#f3f6fc');tg?.setBackgroundColo
 setupEventDelegation();
 render();
 
-try{const r=await fetch('/api/config');if(r.ok)config=await r.json();}catch{}
+try{
+ const r=await fetch('/api/config');
+ if(r.ok){
+  const serverConfig=await r.json();
+  config={...defaultConfig, ...serverConfig};
+  if(serverConfig.monetag) config.monetag={...defaultConfig.monetag, ...serverConfig.monetag};
+ }
+}catch{}
 if(config.payments&&tg?.initData){
  try{
   await refreshAccount();
@@ -634,20 +687,54 @@ if(pending&&account){
  }catch(e){$('#status').textContent=e.message;}finally{busy=false;render();}
 }
 
-adAvailable=!!((config.monetag||config.ads&&/^\d+$/.test(config.adsBlockId||''))&&tg?.initData);
+adAvailable=!!(config.monetag||(config.ads&&/^\d+$/.test(config.adsBlockId||''))||config.adsterraSmartlink||config.monetagSmartlink);
 render();
 
 $('#ad').addEventListener('click',async()=>{
  if(dailyMode||!adAvailable||busy||!game.over||game.adUsed||pending)return;
  busy=true;render();
+ const monetagConf=config.monetag||defaultConfig.monetag;
+ const smartlink=config.monetagSmartlink||config.adsterraSmartlink||defaultConfig.monetagSmartlink;
+ let granted=false;
  try{
-  const completed=config.monetag?completedMonetagReward(await showMonetagRewarded(config.monetag)):completedReward(await showRewarded(config.adsBlockId));
-  if(completed){
+  if(monetagConf?.zone&&monetagConf?.scriptUrl){
+   try{
+    const res=await showMonetagRewarded(monetagConf);
+    if(completedMonetagReward(res)) granted=true;
+   }catch(err){
+    console.warn('Monetag SDK error, falling back to smartlink:', err);
+   }
+  }else if(config.ads&&config.adsBlockId){
+   try{
+    const res=await showRewarded(config.adsBlockId);
+    if(completedReward(res)) granted=true;
+   }catch(err){
+    console.warn('Adsgram error, falling back to smartlink:', err);
+   }
+  }
+  if(!granted&&smartlink){
+   if(tg?.openLink) tg.openLink(smartlink);
+   else window.open(smartlink,'_blank','noopener,noreferrer');
+   granted=true;
+  }
+  if(granted){
    rescue(game);game.adUsed=true;
    sfx.fanfare();
-   $('#status').textContent='Ad completed. Your orbit has room again.';
-  }else $('#status').textContent='Ad not completed. No rescue was used.';
- }catch{$('#status').textContent='Ad skipped or unavailable. No rescue was used.';}finally{busy=false;render();}
+   $('#status').textContent='Sponsor ad completed. Your orbit has room again.';
+  }else{
+   $('#status').textContent='Ad not completed. No rescue was used.';
+  }
+ }catch(e){
+  if(smartlink){
+   if(tg?.openLink) tg.openLink(smartlink);
+   else window.open(smartlink,'_blank','noopener,noreferrer');
+   rescue(game);game.adUsed=true;
+   sfx.fanfare();
+   $('#status').textContent='Sponsor ad completed. Your orbit has room again.';
+  }else{
+   $('#status').textContent='Ad skipped or unavailable. No rescue was used.';
+  }
+ }finally{busy=false;render();}
 });
 
 $('#daily').addEventListener('click',toggleDaily);

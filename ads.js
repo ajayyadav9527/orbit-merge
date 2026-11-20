@@ -9,6 +9,9 @@ export async function showMonetagRewarded({zone, scriptUrl}) {
  const source = new URL(scriptUrl);
  if (source.protocol !== 'https:') throw new Error('Monetag SDK requires HTTPS.');
  const functionName = 'show_' + zone;
+ if (typeof window !== 'undefined' && typeof window[functionName] === 'function') {
+  return window[functionName]({type: 'end', ymid: crypto.randomUUID(), requestVar: 'game_over_rescue', timeout: 10});
+ }
  if (!monetagPromise) {
   monetagPromise = new Promise((resolve, reject) => {
    const script = document.createElement('script');
