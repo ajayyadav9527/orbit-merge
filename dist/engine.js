@@ -1,4 +1,9 @@
 export const W=5,H=6;
+export function dailySeed(date) {
+ let seed = 2166136261;
+ for (const character of date) seed = Math.imul(seed ^ character.charCodeAt(0), 16777619);
+ return seed >>> 0;
+}
 export function random(seed){let x=seed>>>0;return()=>{x=(Math.imul(1664525,x)+1013904223)>>>0;return x/4294967296;};}
 export function newGame(seed=Date.now()){return {seed:seed>>>0,board:Array(W*H).fill(0),score:0,drops:0,merges:0,history:[],over:false};}
 export function nextLevel(g,offset=0){const rng=random(g.seed);let n;for(let i=0;i<=g.drops+offset;i++)n=rng();return n<.6?1:n<.9?2:3;}
