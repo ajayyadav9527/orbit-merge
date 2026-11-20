@@ -8,31 +8,52 @@ let stored;try{stored=JSON.parse(localStorage.getItem(STORAGE)||'null');}catch{}
 class SoundFX {
  constructor(){
   this.ctx=null;
+  this.masterGain=null;
   this.muted=localStorage.getItem('orbit-sound-muted')==='true';
  }
  init(){
   if(!this.ctx&&(window.AudioContext||window.webkitAudioContext)){
-   this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+   try{
+    const AudioCtx=window.AudioContext||window.webkitAudioContext;
+    this.ctx=new AudioCtx();
+    this.masterGain=this.ctx.createGain();
+    this.masterGain.gain.setValueAtTime(this.muted?0:1,this.ctx.currentTime);
+    this.masterGain.connect(this.ctx.destination);
+   }catch{}
   }
-  if(this.ctx&&this.ctx.state==='suspended')this.ctx.resume();
+  if(this.ctx&&this.ctx.state==='suspended'){
+   this.ctx.resume().catch(()=>{});
+  }
  }
  toggle(){
   this.muted=!this.muted;
   localStorage.setItem('orbit-sound-muted',String(this.muted));
+  if(this.masterGain&&this.ctx){
+   try{this.masterGain.gain.setValueAtTime(this.muted?0:1,this.ctx.currentTime);}catch{}
+  }
   return !this.muted;
  }
  tone(freq,type='sine',dur=0.15,vol=0.12){
   if(this.muted)return;
   try{
    this.init();
-   if(!this.ctx)return;
+   if(!this.ctx||this.ctx.state==='closed')return;
+   const now=this.ctx.currentTime;
    const osc=this.ctx.createOscillator(),g=this.ctx.createGain();
    osc.type=type;
-   osc.frequency.setValueAtTime(freq,this.ctx.currentTime);
-   g.gain.setValueAtTime(vol,this.ctx.currentTime);
-   g.gain.exponentialRampToValueAtTime(0.0001,this.ctx.currentTime+dur);
-   osc.connect(g);g.connect(this.ctx.destination);
-   osc.start();osc.stop(this.ctx.currentTime+dur);
+   osc.frequency.setValueAtTime(freq,now);
+   g.gain.setValueAtTime(Math.max(vol,0.0001),now);
+   g.gain.exponentialRampToValueAtTime(0.0001,now+dur);
+   osc.connect(g);
+   g.connect(this.masterGain||this.ctx.destination);
+   osc.onended=()=>{
+    try{
+     osc.disconnect();
+     g.disconnect();
+    }catch{}
+   };
+   osc.start(now);
+   osc.stop(now+dur);
   }catch{}
  }
  drop(){this.tone(170,'triangle',0.12,0.14);}
@@ -57,6 +78,15 @@ class SoundFX {
 }
 
 const sfx=new SoundFX();
+const unlockAudio=()=>{
+ sfx.init();
+ ['pointerdown','keydown','touchstart','click'].forEach(evt=>{
+  window.removeEventListener(evt,unlockAudio);
+ });
+};
+['pointerdown','keydown','touchstart','click'].forEach(evt=>{
+ window.addEventListener(evt,unlockAudio,{passive:true,once:true});
+});
 $('#sound').textContent=sfx.muted?'🔇':'🔊';
 $('#sound').addEventListener('click',()=>{
  const on=sfx.toggle();
@@ -112,6 +142,7 @@ function toggleDaily(){
  if(dailyMode){dailyGame=game;game=regularGame;}
  else{regularGame=game;game=dailyGame;}
  dailyMode=!dailyMode;
+ lastDropChain=0;lastMergedPos=null;hoveredLane=null;
  $('#daily').textContent=dailyMode?'Back to free play':'Daily challenge';
  $('#daily-share').hidden=!dailyMode;
  $('#daily-info').textContent=dailyMode?'Same puzzle for everyone. No boosters. New puzzle at midnight UTC.':'';
@@ -137,6 +168,133 @@ function planet(level,pop=false){
  return el;
 }
 
+function initBoard(){
+ const board=$('#board');
+ if(!board||board.children.length===W*H)return;
+ board.replaceChildren();
+ for(let r=0;r<H;r++){
+  for(let c=0;c<W;c++){
+   const pos=r*W+c;
+   const cell=document.createElement('div');
+   cell.className='cell';
+   cell.dataset.pos=String(pos);
+   cell.dataset.col=String(c);
+   cell.dataset.row=String(r);
+   cell.setAttribute('aria-label',`Row ${r+1}, lane ${c+1}: empty`);
+   board.append(cell);
+  }
+ }
+}
+
+function initLanes(){
+ const lanes=$('#lanes');
+ if(!lanes||lanes.children.length===W)return;
+ lanes.replaceChildren();
+ for(let c=0;c<W;c++){
+  const b=document.createElement('button');
+  b.className='lane';
+  b.textContent='↓';
+  b.ariaLabel=`Drop in lane ${c+1}`;
+  b.dataset.col=String(c);
+  lanes.append(b);
+ }
+}
+
+function renderBoard(){
+ initBoard();
+ const board=$('#board');
+ if(!board)return;
+ const ghostRow=hoveredLane!==null?targetRow(game,hoveredLane):-1;
+
+ for(let r=0;r<H;r++){
+  for(let c=0;c<W;c++){
+   const pos=r*W+c;
+   const n=game.board[pos];
+   const cell=board.children[pos];
+   if(!cell)continue;
+
+   const isGhost=hoveredLane===c&&r===ghostRow&&!n;
+   cell.classList.toggle('filled',!!n);
+   cell.classList.toggle('ghost',isGhost);
+
+   const label=`Row ${r+1}, lane ${c+1}: ${n?2**n:'empty'}`;
+   if(cell.getAttribute('aria-label')!==label)cell.setAttribute('aria-label',label);
+
+   let planetEl=cell.querySelector('.planet');
+   if(n){
+    const isPop=lastMergedPos===pos;
+    const targetClass=`planet l${Math.min(n,10)}${isPop?' pop':''}`;
+    const targetText=(2**n).toLocaleString();
+    if(!planetEl){
+     cell.prepend(planet(n,isPop));
+    }else{
+     if(isPop&&planetEl.classList.contains('pop')){
+      planetEl.classList.remove('pop');
+      void planetEl.offsetWidth;
+     }
+     if(planetEl.className!==targetClass)planetEl.className=targetClass;
+     if(planetEl.textContent!==targetText)planetEl.textContent=targetText;
+    }
+   }else if(planetEl){
+    planetEl.remove();
+   }
+  }
+ }
+}
+
+function renderLanes(){
+ initLanes();
+ const lanes=$('#lanes');
+ if(!lanes)return;
+ for(let c=0;c<W;c++){
+  const b=lanes.children[c];
+  if(!b)continue;
+  const isDisabled=!available(game,c)||game.over||busy;
+  if(b.disabled!==isDisabled)b.disabled=isDisabled;
+  b.classList.toggle('active-lane',hoveredLane===c);
+ }
+}
+
+function setupEventDelegation(){
+ const board=$('#board');
+ if(board){
+  board.addEventListener('click',e=>{
+   const cell=e.target.closest('.cell');
+   if(!cell)return;
+   const col=Number(cell.dataset.col);
+   if(!Number.isNaN(col))play(col);
+  });
+  board.addEventListener('mouseover',e=>{
+   const cell=e.target.closest('.cell');
+   if(!cell)return;
+   const col=Number(cell.dataset.col);
+   if(!Number.isNaN(col)&&hoveredLane!==col){hoveredLane=col;renderGhost();}
+  });
+  board.addEventListener('mouseleave',()=>{
+   if(hoveredLane!==null){hoveredLane=null;renderGhost();}
+  });
+ }
+
+ const lanes=$('#lanes');
+ if(lanes){
+  lanes.addEventListener('click',e=>{
+   const btn=e.target.closest('.lane');
+   if(!btn||btn.disabled)return;
+   const col=Number(btn.dataset.col);
+   if(!Number.isNaN(col))play(col);
+  });
+  lanes.addEventListener('mouseover',e=>{
+   const btn=e.target.closest('.lane');
+   if(!btn)return;
+   const col=Number(btn.dataset.col);
+   if(!Number.isNaN(col)&&hoveredLane!==col){hoveredLane=col;renderGhost();}
+  });
+  lanes.addEventListener('mouseleave',()=>{
+   if(hoveredLane!==null){hoveredLane=null;renderGhost();}
+  });
+ }
+}
+
 function render(){
  $('#score').textContent=game.score.toLocaleString();
  if(!dailyMode){
@@ -149,42 +307,8 @@ function render(){
  $('#mission').textContent=records.missionIdx>=MISSIONS.length?'All missions complete! Galaxy Legend.':curMission.title;
  $('#progress').textContent=records.missionIdx>=MISSIONS.length?'★ ★ ★':curMission.progress(game,lastDropChain);
 
- const ghostRow=hoveredLane!==null?targetRow(game,hoveredLane):-1;
- const board=$('#board');
- board.replaceChildren();
-
- for(let r=0;r<H;r++){
-  for(let c=0;c<W;c++){
-   const pos=r*W+c;
-   const n=game.board[pos];
-   const cell=document.createElement('div');
-   const isGhost=hoveredLane===c&&r===ghostRow&&!n;
-   cell.className=`cell${n?' filled':''}${isGhost?' ghost':''}`;
-   cell.setAttribute('aria-label',`Row ${r+1}, lane ${c+1}: ${n?2**n:'empty'}`);
-   if(n){
-    const isPop=lastMergedPos===pos;
-    cell.append(planet(n,isPop));
-   }
-   cell.addEventListener('mouseenter',()=>{hoveredLane=c;renderGhost();});
-   cell.addEventListener('mouseleave',()=>{hoveredLane=null;renderGhost();});
-   cell.addEventListener('click',()=>play(c));
-   board.append(cell);
-  }
- }
-
- const lanes=$('#lanes');
- lanes.replaceChildren();
- for(let c=0;c<W;c++){
-  const b=document.createElement('button');
-  b.className=`lane${hoveredLane===c?' active-lane':''}`;
-  b.textContent='↓';
-  b.ariaLabel=`Drop in lane ${c+1}`;
-  b.disabled=!available(game,c)||game.over||busy;
-  b.addEventListener('mouseenter',()=>{hoveredLane=c;renderGhost();});
-  b.addEventListener('mouseleave',()=>{hoveredLane=null;renderGhost();});
-  b.addEventListener('click',()=>play(c));
-  lanes.append(b);
- }
+ renderBoard();
+ renderLanes();
 
  for(const id of ['undo','shuffle','new','restart','rescue','ad'])document.getElementById(id).hidden=dailyMode;
  document.getElementById('over-copy').textContent=dailyMode?'Share your score or return to free play.':'A new universe is always free.';
@@ -217,14 +341,23 @@ function render(){
 
 function renderGhost(){
  const ghostRow=hoveredLane!==null?targetRow(game,hoveredLane):-1;
- document.querySelectorAll('#board .cell').forEach((cell,idx)=>{
-  const c=idx%W,r=Math.floor(idx/W);
-  const isGhost=hoveredLane===c&&r===ghostRow&&!game.board[idx];
-  cell.classList.toggle('ghost',isGhost);
- });
- document.querySelectorAll('#lanes .lane').forEach((btn,idx)=>{
-  btn.classList.toggle('active-lane',hoveredLane===idx);
- });
+ const board=$('#board');
+ if(board){
+  for(let idx=0;idx<W*H;idx++){
+   const cell=board.children[idx];
+   if(!cell)continue;
+   const c=idx%W,r=Math.floor(idx/W);
+   const isGhost=hoveredLane===c&&r===ghostRow&&!game.board[idx];
+   cell.classList.toggle('ghost',isGhost);
+  }
+ }
+ const lanes=$('#lanes');
+ if(lanes){
+  for(let c=0;c<W;c++){
+   const btn=lanes.children[c];
+   if(btn)btn.classList.toggle('active-lane',hoveredLane===c);
+  }
+ }
 }
 
 function spawnScorePopup(pos,points,chain){
@@ -248,7 +381,7 @@ function play(c){
 
  sfx.drop();
  lastDropChain=result.chain||0;
- lastMergedPos=result.at;
+ lastMergedPos=result.chain>0?result.at:null;
  lastScoredPoints=game.score-prevScore;
 
  if(result.chain>0){
@@ -273,6 +406,7 @@ function start(){
  if(dailyMode||busy)return;
  if(pending){$('#status').textContent='Finish your pending booster first. Reopen the game to retry safely.';return;}
  game=newGame();freeUndo=1;freeShuffle=1;records.games++;
+ lastDropChain=0;lastMergedPos=null;hoveredLane=null;
  $('#status').textContent='A fresh orbit. Your first undo & shuffle are free.';
  sfx.drop();
  render();
@@ -479,6 +613,7 @@ window.addEventListener('keydown',e=>{
 });
 
 try{tg?.ready();tg?.expand();tg?.setHeaderColor('#f3f6fc');tg?.setBackgroundColor('#f3f6fc');}catch{}
+setupEventDelegation();
 render();
 
 try{const r=await fetch('/api/config');if(r.ok)config=await r.json();}catch{}
