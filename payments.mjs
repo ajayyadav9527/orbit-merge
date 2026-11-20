@@ -1,5 +1,5 @@
 import {createHmac,timingSafeEqual,randomUUID} from 'node:crypto';
-export const PRODUCTS={undos:{title:'Second chances',description:'5 undos for Orbit Merge',price:25,quantity:5},rescues:{title:'Room to breathe',description:'3 rescues for Orbit Merge',price:50,quantity:3}};
+export const PRODUCTS={undos:{title:'Second chances',description:'5 undos for Orbit Merge',price:25,quantity:5},shuffles:{title:'Cosmic Shuffle',description:'3 shuffles for Orbit Merge',price:25,quantity:3},rescues:{title:'Room to breathe',description:'3 rescues for Orbit Merge',price:50,quantity:3}};
 export function verifyInitData(raw,token,now=Date.now()){
  if(!raw||!token)throw new Error('Open the game inside Telegram to use purchases.');
  const p=new URLSearchParams(raw),hash=p.get('hash');if(!hash||!/^[a-f0-9]{64}$/.test(hash))throw new Error('Invalid Telegram authentication.');

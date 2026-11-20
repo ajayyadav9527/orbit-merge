@@ -1,5 +1,5 @@
 const enc=new TextEncoder();
-export const products={undos:{title:'Second chances',description:'5 undos for Orbit Merge',price:25,quantity:5},rescues:{title:'Room to breathe',description:'3 rescues for Orbit Merge',price:50,quantity:3}};
+export const products={undos:{title:'Second chances',description:'5 undos for Orbit Merge',price:25,quantity:5},shuffles:{title:'Cosmic Shuffle',description:'3 shuffles for Orbit Merge',price:25,quantity:3},rescues:{title:'Room to breathe',description:'3 rescues for Orbit Merge',price:50,quantity:3}};
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','cache-control':'no-store','x-content-type-options':'nosniff'}});
 async function hmac(key,text){const k=await crypto.subtle.importKey('raw',typeof key==='string'?enc.encode(key):key,{name:'HMAC',hash:'SHA-256'},false,['sign']);return new Uint8Array(await crypto.subtle.sign('HMAC',k,enc.encode(text)));}
 function equal(a,b){if(a.length!==b.length)return false;let n=0;for(let i=0;i<a.length;i++)n|=a.charCodeAt(i)^b.charCodeAt(i);return n===0;}
