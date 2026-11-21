@@ -568,23 +568,59 @@ $('#daily-supply-btn').addEventListener('click',async()=>{
 
 const sponsorDropBtn=$('#sponsor-drop-btn');
 if(sponsorDropBtn){
- sponsorDropBtn.addEventListener('click',()=>{
+ sponsorDropBtn.addEventListener('click',async()=>{
   if(busy)return;
   busy=true;
   sponsorDropBtn.disabled=true;
   const smartlink=config.adsterraSmartlink||config.monetagSmartlink||defaultConfig.adsterraSmartlink;
+  let success=false;
   try{
-   if(tg?.openLink) tg.openLink(smartlink);
-   else window.open(smartlink,'_blank','noopener,noreferrer');
-   const grantUndo=Math.random()<0.5;
-   if(grantUndo) freeUndo++; else freeShuffle++;
-   sfx.fanfare();
-   try{tg?.HapticFeedback?.notificationOccurred('success');}catch{}
-   $('#shop-status').textContent=`🎁 Sponsor Orbit Drop claimed! +1 Free ${grantUndo?'Undo':'Shuffle'} added!`;
-   save();
-   render();
+   if(typeof window.show_12304789 === 'function'){
+    try{
+     await window.show_12304789();
+     success=true;
+    }catch(err){
+     console.warn('Monetag TMA error:', err);
+    }
+   }
+   if(!success){
+    try{
+     const res=await showMonetagRewarded(config.monetag||defaultConfig.monetag);
+     if(completedMonetagReward(res)) success=true;
+    }catch(err){
+     console.warn('Monetag rewarded error:', err);
+    }
+   }
+   if(!success&&smartlink){
+    if(tg?.openLink) tg.openLink(smartlink);
+    else window.open(smartlink,'_blank','noopener,noreferrer');
+    success=true;
+   }
+   if(success){
+    const grantUndo=Math.random()<0.5;
+    if(grantUndo) freeUndo++; else freeShuffle++;
+    sfx.fanfare();
+    try{tg?.HapticFeedback?.notificationOccurred('success');}catch{}
+    $('#shop-status').textContent=`🎁 Sponsor Orbit Drop claimed! +1 Free ${grantUndo?'Undo':'Shuffle'} added!`;
+    save();
+    render();
+   }else{
+    $('#shop-status').textContent='Sponsor drop not completed.';
+   }
   }catch{
-   $('#shop-status').textContent='Sponsor link unavailable.';
+   if(smartlink){
+    if(tg?.openLink) tg.openLink(smartlink);
+    else window.open(smartlink,'_blank','noopener,noreferrer');
+    const grantUndo=Math.random()<0.5;
+    if(grantUndo) freeUndo++; else freeShuffle++;
+    sfx.fanfare();
+    try{tg?.HapticFeedback?.notificationOccurred('success');}catch{}
+    $('#shop-status').textContent=`🎁 Sponsor Orbit Drop claimed! +1 Free ${grantUndo?'Undo':'Shuffle'} added!`;
+    save();
+    render();
+   }else{
+    $('#shop-status').textContent='Sponsor link unavailable.';
+   }
   }finally{
    setTimeout(()=>{
     busy=false;
@@ -659,6 +695,28 @@ window.addEventListener('keydown',e=>{
 });
 
 try{tg?.ready();tg?.expand();tg?.setHeaderColor('#f3f6fc');tg?.setBackgroundColor('#f3f6fc');}catch{}
+
+function initTelegramMonetagInterstitial(){
+ if(typeof window.show_12304789 === 'function'){
+  try{
+   window.show_12304789({
+    type: 'inApp',
+    inAppSettings: {
+     frequency: 2,
+     capping: 0.1,
+     interval: 30,
+     timeout: 5,
+     everyPage: false
+    }
+   });
+  }catch(e){}
+ }
+}
+if(tg||window.Telegram?.WebApp){
+ initTelegramMonetagInterstitial();
+ window.addEventListener('load',initTelegramMonetagInterstitial);
+ setTimeout(initTelegramMonetagInterstitial,1000);
+}
 setupEventDelegation();
 render();
 
@@ -687,7 +745,7 @@ if(pending&&account){
  }catch(e){$('#status').textContent=e.message;}finally{busy=false;render();}
 }
 
-adAvailable=!!(config.monetag||(config.ads&&/^\d+$/.test(config.adsBlockId||''))||config.adsterraSmartlink||config.monetagSmartlink);
+adAvailable=!!((typeof window!=='undefined'&&typeof window.show_12304789==='function')||config.monetag||(config.ads&&/^\d+$/.test(config.adsBlockId||''))||config.adsterraSmartlink||config.monetagSmartlink);
 render();
 
 $('#ad').addEventListener('click',async()=>{
@@ -697,14 +755,22 @@ $('#ad').addEventListener('click',async()=>{
  const smartlink=config.monetagSmartlink||config.adsterraSmartlink||defaultConfig.monetagSmartlink;
  let granted=false;
  try{
-  if(monetagConf?.zone&&monetagConf?.scriptUrl){
+  if(typeof window.show_12304789 === 'function'){
+   try{
+    await window.show_12304789();
+    granted=true;
+   }catch(err){
+    console.warn('Monetag TMA error:', err);
+   }
+  }
+  if(!granted&&monetagConf?.zone&&monetagConf?.scriptUrl){
    try{
     const res=await showMonetagRewarded(monetagConf);
     if(completedMonetagReward(res)) granted=true;
    }catch(err){
     console.warn('Monetag SDK error, falling back to smartlink:', err);
    }
-  }else if(config.ads&&config.adsBlockId){
+  }else if(!granted&&config.ads&&config.adsBlockId){
    try{
     const res=await showRewarded(config.adsBlockId);
     if(completedReward(res)) granted=true;

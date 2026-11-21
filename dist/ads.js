@@ -4,11 +4,16 @@ export function completedMonetagReward(result) {
  return result?.reward_event_type === 'valued';
 }
 
-export async function showMonetagRewarded({zone, scriptUrl}) {
- if (!/^\d+$/.test(zone)) throw new Error('Invalid Monetag zone.');
- const source = new URL(scriptUrl);
+export async function showMonetagRewarded({zone, scriptUrl} = {}) {
+ if (typeof window !== 'undefined' && typeof window.show_12304789 === 'function') {
+  return window.show_12304789().then(() => ({ reward_event_type: 'valued' }));
+ }
+ const targetZone = zone || '12310273';
+ const targetScript = scriptUrl || 'https://alwingulla.com/88/tag.min.js';
+ if (!/^\d+$/.test(targetZone)) throw new Error('Invalid Monetag zone.');
+ const source = new URL(targetScript);
  if (source.protocol !== 'https:') throw new Error('Monetag SDK requires HTTPS.');
- const functionName = 'show_' + zone;
+ const functionName = 'show_' + targetZone;
  if (typeof window !== 'undefined' && typeof window[functionName] === 'function') {
   return window[functionName]({type: 'end', ymid: crypto.randomUUID(), requestVar: 'game_over_rescue', timeout: 10});
  }
@@ -16,7 +21,7 @@ export async function showMonetagRewarded({zone, scriptUrl}) {
   monetagPromise = new Promise((resolve, reject) => {
    const script = document.createElement('script');
    script.src = source.href;
-   script.dataset.zone = zone;
+   script.dataset.zone = targetZone;
    script.dataset.sdk = functionName;
    const fail = message => {
     clearTimeout(timer);
