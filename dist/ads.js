@@ -1,5 +1,19 @@
 let controllerPromise;
 let monetagPromise;
+
+export const HEADER_AD_CREATIVES = [
+ { tag: '[SPONSOR]', icon: '🪐', text: 'Free Orbit Mystery Booster: +1 Shuffle & Undo!', cta: '» Claim' },
+ { tag: '[FEATURED]', icon: '🚀', text: 'Top Trending Telegram Mini Apps & Web3 Games', cta: '» Play Now' },
+ { tag: '[BONUS]', icon: '⭐', text: 'Unlock Cosmic Nova Stars & Galactic Themes', cta: '» Get Stars' },
+ { tag: '[EVENT]', icon: '🏆', text: 'Compete for Rank #1 in Orbit Merge Arena', cta: '» Join Event' }
+];
+export const HEADER_AD_INTERVAL_MS = 8000;
+export const HEADER_AD_SMARTLINK = 'https://www.profitablecpmrate.com/fptf61s1k?key=c6c4c05ef1c8dfb208da70557431b997';
+
+export function getNextAdIndex(currentIndex, totalCount) {
+ return (currentIndex + 1) % totalCount;
+}
+
 export function completedMonetagReward(result) {
  return result?.reward_event_type === 'valued';
 }

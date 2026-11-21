@@ -696,27 +696,39 @@ window.addEventListener('keydown',e=>{
 
 try{tg?.ready();tg?.expand();tg?.setHeaderColor('#f3f6fc');tg?.setBackgroundColor('#f3f6fc');}catch{}
 
-function initTelegramMonetagInterstitial(){
- if(typeof window.show_12304789 === 'function'){
-  try{
-   window.show_12304789({
-    type: 'inApp',
-    inAppSettings: {
-     frequency: 2,
-     capping: 0.1,
-     interval: 30,
-     timeout: 5,
-     everyPage: false
-    }
-   });
-  }catch(e){}
- }
+export function initFixedHeaderAdBar(){
+ const bar=document.getElementById('fixed-header-ad-bar');
+ if(!bar)return null;
+ const slides=bar.querySelectorAll('.header-ad-slide');
+ if(!slides||slides.length<=1)return null;
+ let idx=0;
+ const timer=setInterval(()=>{
+  slides[idx].classList.remove('active');
+  idx=(idx+1)%slides.length;
+  slides[idx].classList.add('active');
+ },8000);
+
+ const openAd=()=>{
+  const smartlink=config.adsterraSmartlink||defaultConfig.adsterraSmartlink||'https://www.profitablecpmrate.com/fptf61s1k?key=c6c4c05ef1c8dfb208da70557431b997';
+  if(tg?.openLink){
+   try{tg.openLink(smartlink);return;}catch{}
+  }
+  window.open(smartlink,'_blank','noopener,noreferrer');
+ };
+
+ bar.addEventListener('click',e=>{
+  e.preventDefault();
+  openAd();
+ });
+ bar.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){
+   e.preventDefault();
+   openAd();
+  }
+ });
+ return timer;
 }
-if(tg||window.Telegram?.WebApp){
- initTelegramMonetagInterstitial();
- window.addEventListener('load',initTelegramMonetagInterstitial);
- setTimeout(initTelegramMonetagInterstitial,1000);
-}
+initFixedHeaderAdBar();
 setupEventDelegation();
 render();
 
