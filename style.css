@@ -112,7 +112,7 @@ h2{font-family:'Trebuchet MS',sans-serif;font-size:25px;letter-spacing:-.025em;l
 #share{width:100%;margin-top:20px}
 .over{padding:0 0 18px}.over button{margin:4px 2px}.over p{font-size:13px;color:var(--muted)}
 footer{font-size:10px;color:var(--muted);text-align:center;margin:24px 0 2px}
-dialog{width:min(90vw,440px);max-height:90dvh;overflow-y:auto;border:1px solid var(--line);border-radius:20px;color:var(--ink);padding:26px;background:white}
+dialog{position:fixed;top:0;left:0;right:0;bottom:0;margin:auto;margin-top:calc(54px + env(safe-area-inset-top, 0px));width:min(90vw,440px);max-height:calc(100dvh - 64px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));overflow-y:auto;border:1px solid var(--line);border-radius:20px;color:var(--ink);padding:26px;background:white;z-index:100}
 [data-theme="cyber"] dialog{background:#161b22;border-color:#30363d;color:#f0f6fc}
 dialog::backdrop{background:#10203b80}dialog p{font-size:14px;line-height:1.7;color:var(--muted)}dialog h3{font-size:16px}
 .close{float:right}[hidden]{display:none!important}
@@ -144,6 +144,7 @@ body{padding:calc(46px + env(safe-area-inset-top, 0px)) 0 0;display:flex;justify
 .ad-icon{font-size:14px}
 .ad-text{font-size:11.5px}
 .ad-cta{font-size:11px;padding:2px 6px}
+dialog{margin-top:calc(46px + env(safe-area-inset-top, 0px));max-height:calc(100dvh - 54px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));padding:20px 16px;border-radius:16px}
 .app{width:100%;max-width:min(440px,100vw);min-height:calc(100dvh - 46px - env(safe-area-inset-top, 0px));margin:0 auto;border:0;border-radius:0;padding:max(10px,env(safe-area-inset-top)) clamp(10px,3.5vw,16px) max(10px,env(safe-area-inset-bottom));box-shadow:none;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
 .board{aspect-ratio:5/6;width:100%;max-width:min(420px,88vw);max-height:min(420px,48vh,52svh);margin:0 auto;gap:clamp(3px,1vw,6px);padding:clamp(4px,1.2vw,7px)}
 .lane-buttons{width:100%;max-width:min(420px,88vw);margin:0 auto;padding:5px 0 0;gap:clamp(3px,1vw,6px)}
@@ -231,7 +232,7 @@ nav{margin:4px 0 6px}
 .tools{margin-top:5px;gap:4px}
 .secondary,.primary{min-height:30px;padding:3px 8px;font-size:11px}
 .collection,footer,#daily-info{display:none}
-dialog{max-height:90dvh;overflow-y:auto}
+dialog{margin-top:calc(36px + env(safe-area-inset-top, 0px));max-height:calc(100dvh - 44px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));padding:14px 18px;border-radius:14px;overflow-y:auto}
 }
 
 @media(prefers-reduced-motion:reduce){.cell.filled .planet,.planet.pop,.score-popup{animation:none}button{transition:opacity 100ms ease-out}button:active{transform:none}}
