@@ -114,11 +114,11 @@ if(records.theme&&records.theme!=='default'){
 }
 
 const MISSIONS=[
- {title:'Mission 1: Discover a 32 Planet',target:32,check:(g)=>Math.max(0,...g.board)>=5,progress:(g)=>`${Math.max(0,...g.board)?2**Math.min(5,Math.max(...g.board)):0} / 32`,reward:'+1 Free Undo',grant:()=>{freeUndo++;}},
- {title:'Mission 2: Trigger a 2-Step Cascade',target:2,check:(g,c)=>c>=2,progress:(g,c)=>`${Math.min(2,c||0)} / 2`,reward:'+1 Free Shuffle',grant:()=>{freeShuffle++;}},
- {title:'Mission 3: Score 1,000 in one orbit',target:1000,check:(g)=>g.score>=1000,progress:(g)=>`${Math.min(1000,g.score)} / 1000`,reward:'+1 Free Undo',grant:()=>{freeUndo++;}},
- {title:'Mission 4: Discover a 128 Planet',target:128,check:(g)=>Math.max(0,...g.board)>=7,progress:(g)=>`${Math.max(0,...g.board)?2**Math.min(7,Math.max(...g.board)):0} / 128`,reward:'+1 Free Rescue',grant:()=>{if(account)account.rescues++;}},
- {title:'Mission 5: Reach 3,000 High Score',target:3000,check:(g)=>g.score>=3000,progress:(g)=>`${Math.min(3000,g.score)} / 3000`,reward:'+1 Free Shuffle',grant:()=>{freeShuffle++;}},
+ {title:'Mission 1: Discover a 16 Planet',target:16,check:(g)=>Math.max(0,...g.board)>=4,progress:(g)=>`${Math.max(0,...g.board)?2**Math.min(4,Math.max(...g.board)):0} / 16`,reward:'+1 Free Undo',grant:()=>{freeUndo++;}},
+ {title:'Mission 2: Trigger a 1-Step Cascade',target:1,check:(g,c)=>c>=1,progress:(g,c)=>`${Math.min(1,c||0)} / 1`,reward:'+1 Free Shuffle',grant:()=>{freeShuffle++;}},
+ {title:'Mission 3: Score 300 in one orbit',target:300,check:(g)=>g.score>=300,progress:(g)=>`${Math.min(300,g.score)} / 300`,reward:'+1 Free Undo',grant:()=>{freeUndo++;}},
+ {title:'Mission 4: Discover a 64 Planet',target:64,check:(g)=>Math.max(0,...g.board)>=6,progress:(g)=>`${Math.max(0,...g.board)?2**Math.min(6,Math.max(...g.board)):0} / 64`,reward:'+1 Free Rescue',grant:()=>{if(account)account.rescues++;}},
+ {title:'Mission 5: Reach 1,000 High Score',target:1000,check:(g)=>g.score>=1000,progress:(g)=>`${Math.min(1000,g.score)} / 1000`,reward:'+1 Free Shuffle',grant:()=>{freeShuffle++;}},
  {title:'Mastery: Forge a 2048 Cosmic Star',target:2048,check:(g)=>Math.max(0,...g.board)>=11,progress:(g)=>`${Math.max(0,...g.board)?2**Math.min(11,Math.max(...g.board)):0} / 2048`,reward:'Supernova Master',grant:()=>{}}
 ];
 
