@@ -631,9 +631,11 @@ if(sponsorDropBtn){
 }
 
 $('#share').addEventListener('click',async()=>{
- const url=config.botUsername?`https://t.me/${config.botUsername}?startapp=play`:location.origin;
+ const challengePts=Math.max(200,records.best);
+ const url=config.botUsername?`https://t.me/${config.botUsername}?startapp=beat_${challengePts}`:location.origin;
  const maxP=records.largest?2**records.largest:'32';
- const text=`🪐 Orbit Merge Record!\n🏆 Best Score: ${records.best.toLocaleString()}\n⭐ Highest Planet: ${maxP}\n🎮 Merges: ${(records.merges||0).toLocaleString()}\nCan you build a bigger universe? Play free:`;
+ const text=`🪐 Orbit Merge Record!\n🏆 Best Score: ${records.best.toLocaleString()}\n⭐ Highest Planet: ${maxP}\n🎮 Merges: ${(records.merges||0).toLocaleString()}\nCan you beat ${challengePts} PTS? Play free:`;
+ if(!records.shareBonus){records.shareBonus=true;freeShuffle++;save();render();$('#status').textContent='🎉 Share bonus: +1 Free Shuffle added!';}
  if(tg?.initData)tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
  else if(navigator.share){try{await navigator.share({title:'Orbit Merge',text,url});}catch{}}
  else{try{await navigator.clipboard.writeText(text+' '+url);$('#share').textContent='Record summary copied!';}catch{$('#share').textContent='Copy from address bar';}}
@@ -827,3 +829,5 @@ $('#daily-share').addEventListener('click',async()=>{
 });
 
 if(tg?.initDataUnsafe?.start_param==='daily'||new URLSearchParams(location.search).get('mode')==='daily')toggleDaily();
+const beatParam=String(tg?.initDataUnsafe?.start_param||new URLSearchParams(location.search).get('beat')||'').match(/^beat_(\d+)$|^(\d+)$/);
+if(beatParam){const t=beatParam[1]||beatParam[2];$('#status').textContent=`⚡ Incoming Challenge: Beat ${t} PTS!`;}
