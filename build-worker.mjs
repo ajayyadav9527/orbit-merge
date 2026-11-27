@@ -9,6 +9,8 @@ const types={
  'robots.txt':'text/plain; charset=utf-8',
  'sitemap.xml':'application/xml; charset=utf-8',
  'app_icon.png':'image/png',
+ 'app_icon_favicon.png':'image/png',
+ 'app_icon_touch.png':'image/png',
  'game_banner.png':'image/png'
 };
 const assets={};

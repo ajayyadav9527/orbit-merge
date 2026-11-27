@@ -65,7 +65,7 @@ test('GitHub Pages keeps play and shared challenges on the static release', asyn
         apiRequests.push(name);
         return route.fulfill({status:404, body:'Not found'});
       }
-      if (!['index.html','style.css','app.js','engine.js','ads.js','app_icon.png'].includes(name)) return route.abort();
+      if (!['index.html','style.css','app.js','engine.js','ads.js','app_icon.png','app_icon_favicon.png','app_icon_touch.png'].includes(name)) return route.abort();
       return route.fulfill({path:path.resolve(name)});
     });
     await page.addInitScript(() => {
