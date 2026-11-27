@@ -50,6 +50,48 @@ function makeFullOrbitState(score = 400) {
   };
 }
 
+test('GitHub Pages keeps play and shared challenges on the static release', async () => {
+  const origin = 'https://ajayyadav9527.github.io';
+  const base = origin + '/orbit-merge/';
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage();
+    const apiRequests = [];
+    await page.route('**/*', route => {
+      const url = new URL(route.request().url());
+      if (url.origin !== origin || !url.pathname.startsWith('/orbit-merge/')) return route.abort();
+      const name = url.pathname.slice('/orbit-merge/'.length) || 'index.html';
+      if (name.startsWith('api/')) {
+        apiRequests.push(name);
+        return route.fulfill({status:404, body:'Not found'});
+      }
+      if (!['index.html','style.css','app.js','engine.js','ads.js','app_icon.png'].includes(name)) return route.abort();
+      return route.fulfill({path:path.resolve(name)});
+    });
+    await page.addInitScript(() => {
+      window.Telegram = {WebApp: {
+        initData:'test-launch',
+        openTelegramLink: url => { window.lastSharedLink = url; }
+      }};
+    });
+    await page.goto(base + '?mode=daily');
+    await page.locator('#daily-share').click();
+    let link = new URL(await page.evaluate(() => window.lastSharedLink));
+    assert.equal(link.searchParams.get('url'), base + '?mode=daily');
+    await page.locator('[data-view="shop"]').click();
+    assert.equal(await page.locator('#pages-booster-note').isVisible(),true);
+    assert.equal(await page.locator('#open-telegram-shop').isVisible(),false);
+    assert.equal(await page.locator('#sponsor-drop-btn').isEnabled(),true);
+    await page.locator('[data-view="records"]').click();
+    await page.locator('#share').click();
+    link = new URL(await page.evaluate(() => window.lastSharedLink));
+    assert.equal(link.searchParams.get('url'), base + '?beat=200');
+    assert.deepEqual(apiRequests,[]);
+  } finally {
+    await browser.close();
+  }
+});
+
 test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, daily 2x, streak, themes, cross-promo & dist parity', async () => {
   const rootDir = path.resolve('.');
   // 1. Root vs dist parity check

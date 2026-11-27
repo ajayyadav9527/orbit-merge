@@ -95,8 +95,11 @@ $('#sound').addEventListener('click',()=>{
 });
 
 const pagesOrigin='https://ajayyadav9527.github.io';
+const pagesUrl=new URL('/orbit-merge/',pagesOrigin);
+const isGitHubPages=location.origin===pagesOrigin&&location.pathname.startsWith(pagesUrl.pathname);
 const defaultConfig = {
- monetag: location.origin===pagesOrigin&&location.pathname.startsWith('/orbit-merge/') ? {
+ payments: false,
+ monetag: isGitHubPages ? {
   zone: '12304789',
   scriptUrl: 'https://libtl.com/sdk.js'
  } : null,
@@ -476,6 +479,11 @@ async function api(path,body){
 }
 
 function updateCommerceUI(){
+ if(isGitHubPages){
+  $('#stars-shop-title').closest('section').hidden=true;
+  $('#pages-booster-note').hidden=false;
+  return;
+ }
  const signedIn=!!getTg()?.initData;
  if(account){
   $('#balance').textContent=`Your boosters: ${account.undos||0} undos · ${account.shuffles||0} shuffles · ${account.rescues||0} rescues`;
@@ -893,11 +901,11 @@ function buildChallengeShare(scoreOverride){
  const challengePts=Math.max(200,scoreOverride??records.best,game.score||0);
  const bot=config.botUsername||defaultConfig.botUsername||'OrbitMergeAjayBot';
  const botUrl=`https://t.me/${bot}?startapp=beat_${challengePts}`;
- const webUrl=`${location.origin}${location.pathname}?beat=${challengePts}`;
- const shareUrl=getTg()?.initData?botUrl:webUrl;
+ const webUrl=new URL(`?beat=${challengePts}`,isGitHubPages?pagesUrl:location.href).href;
+ const shareUrl=!isGitHubPages&&getTg()?.initData?botUrl:webUrl;
  const maxP=records.largest?2**records.largest:'32';
  const text=`🪐 Orbit Merge Record!\n🏆 Best Score: ${records.best.toLocaleString()}\n⭐ Highest Planet: ${maxP}\n🎮 Merges: ${(records.merges||0).toLocaleString()}\nCan you beat ${challengePts} PTS? Play free:`;
- return {challengePts,botUrl,webUrl,shareUrl,text};
+ return {challengePts,botUrl,shareUrl,text};
 }
 
 async function handleShareClick(scoreOverride,buttonEl){
@@ -916,11 +924,11 @@ async function handleShareClick(scoreOverride,buttonEl){
 function shareScoreToStory(scoreOverride){
  const tg=getTg();
  if(typeof tg?.shareToStory!=='function')return;
- const {botUrl,challengePts}=buildChallengeShare(scoreOverride);
+ const {botUrl,shareUrl,challengePts}=buildChallengeShare(scoreOverride);
  try{
   tg.shareToStory('https://ajayyadav9527.github.io/orbit-merge/game_banner.png',{
    text:`🪐 Can you beat ${challengePts.toLocaleString()} PTS in Orbit Merge?`,
-   widget_link:{url:botUrl,name:'Play Orbit Merge'}
+   widget_link:{url:isGitHubPages?shareUrl:botUrl,name:'Play Orbit Merge'}
   });
  }catch{}
 }
@@ -1114,7 +1122,7 @@ $('#ad-bonus-shuffle').addEventListener('click',async()=>{
 
 $('#daily').addEventListener('click',toggleDaily);
 $('#daily-share').addEventListener('click',async()=>{
- const url='https://t.me/OrbitMergeAjayBot/play?startapp=daily';
+ const url=isGitHubPages?new URL('?mode=daily',pagesUrl).href:'https://t.me/OrbitMergeAjayBot/play?startapp=daily';
  const msg=`Orbit Merge Daily · ${dailyDate}\nScore: ${game.score}\nSame puzzle for everyone. Zero boosters. Can you beat me?\n${url}`;
  const tg=getTg();
  if(tg?.initData){
@@ -1201,19 +1209,22 @@ if(tgScript)tgScript.addEventListener('load',()=>{onTelegramSdkReady();},{once:t
 window.addEventListener('load',()=>{onTelegramSdkReady();},{once:true});
 
 initTelegramWebApp();
+updateCommerceUI();
 initFixedHeaderAdBar();
 setupEventDelegation();
 applyStartParams();
 render();
 
-try{
- const r=await fetch(new URL('./api/config',import.meta.url),{signal:AbortSignal.timeout(5000)});
- if(r.ok){
-  const serverConfig=await r.json();
-  config={...defaultConfig, ...serverConfig};
-  if(!config.botUsername)config.botUsername=defaultConfig.botUsername;
- }
-}catch{}
+if(!isGitHubPages){
+ try{
+  const r=await fetch(new URL('./api/config',import.meta.url),{signal:AbortSignal.timeout(5000)});
+  if(r.ok){
+   const serverConfig=await r.json();
+   config={...defaultConfig, ...serverConfig};
+   if(!config.botUsername)config.botUsername=defaultConfig.botUsername;
+  }
+ }catch{}
+}
 configReady=true;
 adAvailable=!!((/^\d+$/.test(config.monetag?.zone||'')&&/^https:\/\//.test(config.monetag?.scriptUrl||''))||(config.ads&&/^\d+$/.test(config.adsBlockId||'')));
 updateCommerceUI();
