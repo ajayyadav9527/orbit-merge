@@ -10,19 +10,40 @@ export async function identity(raw,token,now=Date.now()){
  const secret=await hmac('WebAppData',token),digest=await hmac(secret,text),expected=[...digest].map(b=>b.toString(16).padStart(2,'0')).join('');if(!equal(hash,expected))throw new Error('Invalid Telegram authentication.');
  const age=Math.floor(now/1000)-Number(p.get('auth_date'));if(!Number.isFinite(age)||age< -30||age>3600)throw new Error('Telegram session expired. Reopen the game.');const u=JSON.parse(p.get('user')||'null');if(!Number.isSafeInteger(u?.id)||u.id<=0)throw new Error('Invalid Telegram user.');return u;
 }
-export async function balance(db,id){await db.prepare('INSERT OR IGNORE INTO accounts(user_id) VALUES(?)').bind(id).run();return db.prepare('SELECT undos,rescues FROM accounts WHERE user_id=?').bind(id).first();}
+const migratedDbs=new WeakSet();
+async function ensureAccountsSchema(db){
+ if(!db||migratedDbs.has(db))return;
+ try{
+  const row=await db.prepare("SELECT name FROM pragma_table_info('accounts') WHERE name='shuffles'").first();
+  if(!row)await db.prepare('ALTER TABLE accounts ADD COLUMN shuffles INTEGER NOT NULL DEFAULT 0 CHECK(shuffles>=0)').run();
+  migratedDbs.add(db);
+ }catch{}
+}
+export async function balance(db,id){await ensureAccountsSchema(db);await db.prepare('INSERT OR IGNORE INTO accounts(user_id) VALUES(?)').bind(id).run();return db.prepare('SELECT undos,shuffles,rescues FROM accounts WHERE user_id=?').bind(id).first();}
 export async function settle(db,p,user){
+ await ensureAccountsSchema(db);
  const o=await db.prepare('SELECT * FROM orders WHERE id=?').bind(p.invoice_payload).first();if(!o||o.user_id!==user||p.currency!=='XTR'||p.total_amount!==o.amount||typeof p.telegram_payment_charge_id!=='string')throw new Error('Payment does not match an order.');
  if(o.paid){if(o.charge!==p.telegram_payment_charge_id)throw new Error('Conflicting payment.');return false;}
- const product=products[o.product];if(!product)throw new Error('Invalid product.');
+ const product=Object.hasOwn(products,o.product)?products[o.product]:null;if(!product)throw new Error('Invalid product.');
  // D1 batch is transactional: a duplicate charge rolls back the inventory update.
- await db.batch([
+ const results=await db.batch([
  db.prepare('INSERT OR IGNORE INTO accounts(user_id) VALUES(?)').bind(user),
  db.prepare(`UPDATE accounts SET ${o.product}=${o.product}+? WHERE user_id=? AND EXISTS(SELECT 1 FROM orders WHERE id=? AND paid=0)`).bind(product.quantity,user,o.id),
  db.prepare('UPDATE orders SET paid=1,charge=? WHERE id=? AND paid=0').bind(p.telegram_payment_charge_id,o.id)
- ]);return true;
+ ]);
+ const orderUpdate=results?.[2];
+ const changed=orderUpdate?.meta?.changes??orderUpdate?.changes;
+ if(changed===0){
+  const latest=await db.prepare('SELECT paid,charge FROM orders WHERE id=?').bind(o.id).first();
+  if(latest?.paid){
+   if(latest.charge!==p.telegram_payment_charge_id)throw new Error('Conflicting payment.');
+   return false;
+  }
+ }
+ return true;
 }
 export async function consume(db,user,kind,key){
+ await ensureAccountsSchema(db);
  if(!Object.hasOwn(products,kind)||typeof key!=='string'||!/^[a-f0-9-]{36}$/.test(key))throw new Error('Invalid booster action.');
  await db.batch([
  db.prepare(`INSERT OR IGNORE INTO consumptions(id,user_id,kind,applied) SELECT ?,?,?,0 WHERE EXISTS(SELECT 1 FROM accounts WHERE user_id=? AND ${kind}>0)`).bind(key,user,kind,user),
@@ -71,5 +92,6 @@ export function makeWorker(assets){return {async fetch(req,env){const url=new UR
  const link=await bot(env,'createInvoiceLink',{title:p.title,description:p.description,payload:key,provider_token:'',currency:'XTR',prices:[{label:p.title,amount:p.price}]});return json({url:link,orderId:key});}
  return json({error:'Not found'},404);}
  const asset=assets[url.pathname==='/'?'/index.html':url.pathname];if(!asset)return json({error:'Not found'},404);if(!['GET','HEAD'].includes(req.method))return json({error:'Method not allowed'},405);
- return new Response(req.method==='HEAD'?null:asset.body,{headers:{'content-type':asset.type,'cache-control':'no-cache','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin'}});
+ const responseBody=req.method==='HEAD'?null:asset.base64?Uint8Array.from(atob(asset.base64),character=>character.charCodeAt(0)):asset.body;
+ return new Response(responseBody,{headers:{'content-type':asset.type,'cache-control':asset.base64?'public, max-age=86400':'no-cache','x-content-type-options':'nosniff','referrer-policy':'strict-origin-when-cross-origin'}});
  }catch(e){if(url.pathname==='/telegram/webhook')return json({error:'Processing failed; retry delivery.'},500);return json({error:e.message},400);}}};}

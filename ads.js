@@ -2,10 +2,10 @@ let controllerPromise;
 let monetagPromise;
 
 export const HEADER_AD_CREATIVES = [
- { tag: '[SPONSOR]', icon: '🪐', text: 'Free Orbit Mystery Booster: +1 Shuffle & Undo!', cta: '» Claim' },
- { tag: '[FEATURED]', icon: '🚀', text: 'Top Trending Telegram Mini Apps & Web3 Games', cta: '» Play Now' },
- { tag: '[BONUS]', icon: '⭐', text: 'Unlock Cosmic Nova Stars & Galactic Themes', cta: '» Get Stars' },
- { tag: '[EVENT]', icon: '🏆', text: 'Compete for Rank #1 in Orbit Merge Arena', cta: '» Join Event' }
+ { tag: '[SPONSOR]', icon: '🪐', text: 'Orbit Merge sponsor offer', cta: 'Visit sponsor ↗' },
+ { tag: '[SPONSOR]', icon: '🚀', text: 'Featured sponsor offer', cta: 'Visit sponsor ↗' },
+ { tag: '[SPONSOR]', icon: '⭐', text: 'Explore a sponsor offer', cta: 'Visit sponsor ↗' },
+ { tag: '[SPONSOR]', icon: '🏆', text: 'Support Orbit Merge', cta: 'Visit sponsor ↗' }
 ];
 export const HEADER_AD_INTERVAL_MS = 8000;
 export const HEADER_AD_SMARTLINK = 'https://www.profitablecpmrate.com/fptf61s1k?key=c6c4c05ef1c8dfb208da70557431b997';
@@ -18,21 +18,27 @@ export function completedMonetagReward(result) {
  return result?.reward_event_type === 'valued';
 }
 
-export async function showMonetagRewarded({zone, scriptUrl} = {}) {
- if (typeof window !== 'undefined' && typeof window.show_12304789 === 'function') {
-  return window.show_12304789().then(() => ({ reward_event_type: 'valued' }));
- }
- const targetZone = zone || '12310273';
- const targetScript = scriptUrl || 'https://alwingulla.com/88/tag.min.js';
+export async function showMonetagRewarded({zone, scriptUrl, requestVar='game_over_rescue'} = {}) {
+ const targetZone = zone || '12304789';
+ const targetScript = scriptUrl || 'https://libtl.com/sdk.js';
  if (!/^\d+$/.test(targetZone)) throw new Error('Invalid Monetag zone.');
  const source = new URL(targetScript);
  if (source.protocol !== 'https:') throw new Error('Monetag SDK requires HTTPS.');
  const functionName = 'show_' + targetZone;
  if (typeof window !== 'undefined' && typeof window[functionName] === 'function') {
-  return window[functionName]({type: 'end', ymid: crypto.randomUUID(), requestVar: 'game_over_rescue', timeout: 10});
+  const res = await window[functionName](
+   targetZone === '12304789' && !zone
+    ? undefined
+    : {type: 'end', ymid: crypto.randomUUID(), requestVar, timeout: 10}
+  );
+  return res;
  }
  if (!monetagPromise) {
   monetagPromise = new Promise((resolve, reject) => {
+   if (typeof document === 'undefined') {
+    reject(new Error('Monetag SDK unavailable.'));
+    return;
+   }
    const script = document.createElement('script');
    script.src = source.href;
    script.dataset.zone = targetZone;
@@ -43,7 +49,7 @@ export async function showMonetagRewarded({zone, scriptUrl} = {}) {
     script.remove();
     reject(new Error(message));
    };
-   const timer = setTimeout(() => fail('Monetag SDK timed out.'), 6000);
+   const timer = setTimeout(() => fail('Monetag SDK timed out.'), 2500);
    script.onload = () => {
     if (typeof window[functionName] !== 'function') {
      fail('Monetag SDK unavailable.');
@@ -60,7 +66,24 @@ export async function showMonetagRewarded({zone, scriptUrl} = {}) {
   });
  }
  const show = await monetagPromise;
- return show({type: 'end', ymid: crypto.randomUUID(), requestVar: 'game_over_rescue', timeout: 10});
+ const res = await show({type: 'end', ymid: crypto.randomUUID(), requestVar, timeout: 10});
+ return res;
+}
+
+export async function requestRewardedAd(config = {}, requestVar) {
+ try {
+  if (config.monetag?.zone && config.monetag?.scriptUrl) {
+   const res = await showMonetagRewarded({...config.monetag,requestVar});
+   return completedMonetagReward(res);
+  }
+  if (config.ads && config.adsBlockId) {
+   const res = await showRewarded(config.adsBlockId);
+   return completedReward(res);
+  }
+  return false;
+ } catch {
+  return false;
+ }
 }
 
 export function completedReward(result){return result?.done===true&&result?.error===false;}
