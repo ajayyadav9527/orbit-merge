@@ -156,7 +156,7 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
 
     // Rejecting ad does NOT award +1 Undo
     await page.evaluate(() => {
-      window.show_12304789 = async () => ({ reward_event_type: 'skip' });
+      sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'skip' });
     });
     await page.click('#ad-undo');
     await page.waitForTimeout(100);
@@ -165,7 +165,7 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
 
     // Completing ad awards +1 Undo
     await page.evaluate(() => {
-      window.show_12304789 = async () => ({ reward_event_type: 'valued' });
+      sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'valued' });
     });
     await page.click('#ad-undo');
     await page.waitForTimeout(100);
@@ -179,20 +179,20 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     await page.click('#shuffle');
     assert.equal(await page.isVisible('#ad-shuffle'), true);
     await page.evaluate(() => {
-      window.show_12304789 = async () => { throw new Error('closed'); };
+      sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => { throw new Error('closed'); };
     });
     await page.click('#ad-shuffle');
     await page.waitForTimeout(100);
     assert.equal(await page.textContent('#shuffle-count'), '0 free');
 
     await page.evaluate(() => {
-      window.show_12304789 = async () => 'ok';
+      sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => 'ok';
     });
     await page.click('#ad-shuffle');
     await page.waitForFunction(() => !document.querySelector('#ad-shuffle').disabled);
     assert.equal(await page.textContent('#shuffle-count'), '0 free');
     await page.evaluate(() => {
-      window.show_12304789 = async () => ({ reward_event_type: 'valued' });
+      sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'valued' });
     });
     await page.click('#ad-shuffle');
     await page.waitForFunction(() => document.querySelector('#shuffle-count').textContent === '1 free');
@@ -206,12 +206,12 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     assert.equal(await page.isVisible('#daily-supply-2x-btn'), true);
 
     // 2x Daily Supply rejects on skip, grants on valued
-    await page.evaluate(() => { window.show_12304789 = async () => ({ reward_event_type: 'skip' }); });
+    await page.evaluate(() => { sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'skip' }); });
     await page.click('#daily-supply-2x-btn');
     await page.waitForTimeout(100);
     assert.equal(await page.isVisible('#daily-supply-2x-btn'), true);
 
-    await page.evaluate(() => { window.show_12304789 = async () => ({ reward_event_type: 'valued' }); });
+    await page.evaluate(() => { sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'valued' }); });
     await page.click('#daily-supply-2x-btn');
     await page.waitForTimeout(100);
     assert.equal(await page.isVisible('#daily-supply-2x-btn'), false);
@@ -219,7 +219,7 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     // Sponsor Drop rejects without granting & without opening smartlink popup
     const undoBeforeSponsor = await page.textContent('#undo-count');
     const shuffleBeforeSponsor = await page.textContent('#shuffle-count');
-    await page.evaluate(() => { window.show_12304789 = async () => false; });
+    await page.evaluate(() => { sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => false; });
     await page.click('#sponsor-drop-btn');
     await page.waitForTimeout(100);
     assert.equal(popups.length, 0);
@@ -231,7 +231,7 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     await page.waitForTimeout(100);
     assert.equal(await page.textContent('#streak-badge'), 'Day 1 / 7');
     assert.equal(await page.isVisible('#streak-2x-btn'), true);
-    await page.evaluate(() => { window.show_12304789 = async () => ({ reward_event_type: 'valued' }); });
+    await page.evaluate(() => { sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'valued' }); });
     await page.click('#streak-2x-btn');
     await page.waitForTimeout(100);
     assert.equal(await page.isVisible('#streak-2x-btn'), false);
@@ -245,7 +245,7 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.click('[data-view="shop"]');
     assert.equal(await page.isVisible('#streak-repair-btn'), true);
-    await page.evaluate(() => { window.show_12304789 = async () => ({ reward_event_type: 'valued' }); });
+    await page.evaluate(() => { sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'valued' }); });
     await page.click('#streak-repair-btn');
     await page.waitForTimeout(100);
     assert.equal(await page.isVisible('#streak-repair-btn'), false);
@@ -257,7 +257,7 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     let adCalls = 0;
     await page.evaluate(() => {
       window.__adCalls = 0;
-      window.show_12304789 = async () => { window.__adCalls++; return { reward_event_type: 'valued' }; };
+      sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => { window.__adCalls++; return { reward_event_type: 'valued' }; };
     });
     await page.click('[data-set-theme="nebula-gold"]');
     adCalls = await page.evaluate(() => window.__adCalls);
@@ -288,19 +288,20 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     assert.equal(await page.isVisible('#ad-bonus-shuffle'), true);
 
     // Reject 2x Score -> stays 400
-    await page.evaluate(() => { window.show_12304789 = async () => ({ reward_event_type: 'skip' }); });
+    await page.evaluate(() => { sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'skip' }); });
     await page.click('#ad-double-score');
     await page.waitForTimeout(100);
     assert.equal(await page.textContent('#score'), '400');
 
     // Accept 2x Score -> 800 & disabled (1x/orbit)
-    await page.evaluate(() => { window.show_12304789 = async () => ({ reward_event_type: 'valued' }); });
+    await page.evaluate(() => { sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => ({ reward_event_type: 'valued' }); });
     await page.click('#ad-double-score');
     await page.waitForTimeout(100);
     assert.equal(await page.textContent('#score'), '800');
     assert.equal(await page.isDisabled('#ad-double-score'), true);
 
     // Accept Bonus Shuffle -> Restart -> starts with 2 free shuffles
+    await page.evaluate(() => sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'));
     await page.click('#ad-bonus-shuffle');
     await page.waitForTimeout(100);
     assert.equal(await page.isDisabled('#ad-bonus-shuffle'), true);
@@ -365,7 +366,7 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     await trialPage.waitForTimeout(150);
     await trialPage.click('[data-view="records"]');
     await trialPage.click('[data-set-theme="void-eclipse"]');
-    await trialPage.evaluate(() => { window.show_12304789 = async () => false; });
+    await trialPage.evaluate(() => { sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => false; });
     await trialPage.click('#theme-trial-btn');
     await trialPage.waitForTimeout(100);
     assert.match(await trialPage.textContent('#theme-trial-text'), /Ad not completed\. 24h trial was not unlocked\./);
@@ -390,7 +391,7 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
     await racePage.addInitScript((state) => {
       localStorage.setItem('orbit-merge-v1', JSON.stringify(state));
       window.__raceAdCalls = 0;
-      window.show_12304789 = async () => { window.__raceAdCalls++; return { reward_event_type: 'valued' }; };
+      sessionStorage.removeItem('orbit_merge_rewarded_last_valued_ts'); window.show_12304789 = async () => { window.__raceAdCalls++; return { reward_event_type: 'valued' }; };
     }, makeFullOrbitState(400));
     await racePage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
     assert.equal(await racePage.isDisabled('#ad-double-score'), true);

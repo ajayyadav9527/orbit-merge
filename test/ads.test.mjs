@@ -8,6 +8,12 @@ import {
   HEADER_AD_CREATIVES,
   HEADER_AD_INTERVAL_MS,
   HEADER_AD_SMARTLINK,
+  HEADER_SMARTLINK_COOLDOWN_MS,
+  canOpenHeaderSmartlink,
+  markHeaderSmartlinkOpened,
+  REWARDED_AD_COOLDOWN_MS,
+  canShowRewardedAd,
+  markRewardedAdValued,
   getNextAdIndex
 } from '../dist/ads.js';
 
@@ -17,9 +23,9 @@ test('header ad banner rotating creatives and interval match specifications', ()
   assert.equal(HEADER_AD_CREATIVES.length, 4);
 
   for (const creative of HEADER_AD_CREATIVES) {
-    assert.equal(creative.tag, '[SPONSOR]');
-    assert.equal(creative.cta, 'Visit sponsor ↗');
-    assert.match(creative.text, /sponsor|Support Orbit Merge/i);
+    assert.equal(creative.tag, '[PROMOTED]');
+    assert.equal(creative.cta, 'Open promoted link');
+    assert.match(creative.text, /promoted offer/i);
   }
 
   // Verify smooth cyclic rotation indexing
@@ -27,6 +33,32 @@ test('header ad banner rotating creatives and interval match specifications', ()
   assert.equal(getNextAdIndex(1, 4), 2);
   assert.equal(getNextAdIndex(2, 4), 3);
   assert.equal(getNextAdIndex(3, 4), 0);
+});
+
+test('partner link has a per-session 60-second frequency cap', () => {
+  const values = new Map();
+  const storage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value)
+  };
+  assert.equal(HEADER_SMARTLINK_COOLDOWN_MS, 60_000);
+  assert.equal(canOpenHeaderSmartlink(100_000, storage), true);
+  markHeaderSmartlinkOpened(100_000, storage);
+  assert.equal(canOpenHeaderSmartlink(159_999, storage), false);
+  assert.equal(canOpenHeaderSmartlink(160_000, storage), true);
+});
+
+test('valued reward ads have a per-session 60-second cap', () => {
+  const values = new Map();
+  const storage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value)
+  };
+  assert.equal(REWARDED_AD_COOLDOWN_MS, 60_000);
+  assert.equal(canShowRewardedAd(100_000, storage), true);
+  markRewardedAdValued(100_000, storage);
+  assert.equal(canShowRewardedAd(159_999, storage), false);
+  assert.equal(canShowRewardedAd(160_000, storage), true);
 });
 
 test('only an explicitly completed rewarded ad earns a rescue',()=>{

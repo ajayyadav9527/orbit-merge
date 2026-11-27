@@ -1,5 +1,5 @@
 import {W,H,newGame,nextLevel,available,targetRow,drop,undo,rescue,shuffle,dailySeed} from './engine.js';
-import {requestRewardedAd} from './ads.js';
+import {requestRewardedAd,canOpenHeaderSmartlink,markHeaderSmartlinkOpened} from './ads.js';
 
 const $=s=>document.querySelector(s),getTg=()=>window.Telegram?.WebApp;
 const STORAGE='orbit-merge-v1';
@@ -1043,12 +1043,15 @@ export function initFixedHeaderAdBar(){
  },8000);
 
  const openAd=()=>{
+  if(!canOpenHeaderSmartlink())return false;
   const smartlink=config.adsterraSmartlink||defaultConfig.adsterraSmartlink||'https://www.profitablecpmrate.com/fptf61s1k?key=c6c4c05ef1c8dfb208da70557431b997';
   const tg=getTg();
   if(tg?.openLink){
-   try{tg.openLink(smartlink);return;}catch{}
+   try{tg.openLink(smartlink);markHeaderSmartlinkOpened();return true;}catch{}
   }
   window.open(smartlink,'_blank','noopener,noreferrer');
+  markHeaderSmartlinkOpened();
+  return true;
  };
 
  bar.addEventListener('click',e=>{

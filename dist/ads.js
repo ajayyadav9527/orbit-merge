@@ -2,13 +2,49 @@ let controllerPromise;
 let monetagPromise;
 
 export const HEADER_AD_CREATIVES = [
- { tag: '[SPONSOR]', icon: '🪐', text: 'Orbit Merge sponsor offer', cta: 'Visit sponsor ↗' },
- { tag: '[SPONSOR]', icon: '🚀', text: 'Featured sponsor offer', cta: 'Visit sponsor ↗' },
- { tag: '[SPONSOR]', icon: '⭐', text: 'Explore a sponsor offer', cta: 'Visit sponsor ↗' },
- { tag: '[SPONSOR]', icon: '🏆', text: 'Support Orbit Merge', cta: 'Visit sponsor ↗' }
+ { tag: '[PROMOTED]', icon: '🪐', text: 'Browse a promoted offer', cta: 'Open promoted link' },
+ { tag: '[PROMOTED]', icon: '🚀', text: 'Browse a promoted offer', cta: 'Open promoted link' },
+ { tag: '[PROMOTED]', icon: '⭐', text: 'Browse a promoted offer', cta: 'Open promoted link' },
+ { tag: '[PROMOTED]', icon: '🏆', text: 'Browse a promoted offer', cta: 'Open promoted link' }
 ];
 export const HEADER_AD_INTERVAL_MS = 8000;
 export const HEADER_AD_SMARTLINK = 'https://www.profitablecpmrate.com/fptf61s1k?key=c6c4c05ef1c8dfb208da70557431b997';
+export const HEADER_SMARTLINK_COOLDOWN_MS = 60_000;
+export const REWARDED_AD_COOLDOWN_MS = 60_000;
+
+export function canOpenHeaderSmartlink(now = Date.now(), storage) {
+ try {
+  const targetStorage = storage ?? globalThis.sessionStorage;
+  const lastOpened = Number(targetStorage?.getItem('orbit_merge_partner_link_last_ts') || 0);
+  return !lastOpened || now - lastOpened >= HEADER_SMARTLINK_COOLDOWN_MS;
+ } catch {
+  return true;
+ }
+}
+
+export function markHeaderSmartlinkOpened(now = Date.now(), storage) {
+ try {
+  const targetStorage = storage ?? globalThis.sessionStorage;
+  targetStorage?.setItem('orbit_merge_partner_link_last_ts', String(now));
+ } catch {}
+}
+
+export function canShowRewardedAd(now = Date.now(), storage) {
+ try {
+  const targetStorage = storage ?? globalThis.sessionStorage;
+  const lastValued = Number(targetStorage?.getItem('orbit_merge_rewarded_last_valued_ts') || 0);
+  return !lastValued || now - lastValued >= REWARDED_AD_COOLDOWN_MS;
+ } catch {
+  return true;
+ }
+}
+
+export function markRewardedAdValued(now = Date.now(), storage) {
+ try {
+  const targetStorage = storage ?? globalThis.sessionStorage;
+  targetStorage?.setItem('orbit_merge_rewarded_last_valued_ts', String(now));
+ } catch {}
+}
 
 export function getNextAdIndex(currentIndex, totalCount) {
  return (currentIndex + 1) % totalCount;
@@ -25,12 +61,10 @@ export async function showMonetagRewarded({zone, scriptUrl, requestVar='game_ove
  const source = new URL(targetScript);
  if (source.protocol !== 'https:') throw new Error('Monetag SDK requires HTTPS.');
  const functionName = 'show_' + targetZone;
+ const ymid = globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+ const payload = {type: 'end', ymid, requestVar, timeout: 10};
  if (typeof window !== 'undefined' && typeof window[functionName] === 'function') {
-  const res = await window[functionName](
-   targetZone === '12304789' && !zone
-    ? undefined
-    : {type: 'end', ymid: crypto.randomUUID(), requestVar, timeout: 10}
-  );
+  const res = await window[functionName](payload);
   return res;
  }
  if (!monetagPromise) {
@@ -66,19 +100,24 @@ export async function showMonetagRewarded({zone, scriptUrl, requestVar='game_ove
   });
  }
  const show = await monetagPromise;
- const res = await show({type: 'end', ymid: crypto.randomUUID(), requestVar, timeout: 10});
+ const res = await show(payload);
  return res;
 }
 
 export async function requestRewardedAd(config = {}, requestVar) {
  try {
+  if (!canShowRewardedAd()) return false;
+  let completed = false;
   if (config.monetag?.zone && config.monetag?.scriptUrl) {
    const res = await showMonetagRewarded({...config.monetag,requestVar});
-   return completedMonetagReward(res);
-  }
-  if (config.ads && config.adsBlockId) {
+   completed = completedMonetagReward(res);
+  } else if (config.ads && config.adsBlockId) {
    const res = await showRewarded(config.adsBlockId);
-   return completedReward(res);
+   completed = completedReward(res);
+  }
+  if (completed) {
+   markRewardedAdValued();
+   return true;
   }
   return false;
  } catch {
