@@ -210,7 +210,10 @@ test('zero header ad collisions, zero pairwise collisions, zero social bars, and
         'nav .tab',
         '.theme-btn',
         '#share',
-        '#share-story',
+        '.share-story-action',
+        '#records-share-whatsapp',
+        '#records-share-x',
+        '#records-share-copy',
         '#records .promo-link'
       ]);
       assert.deepEqual(recordsAudit.collisions, [], `${vp.name} #records collisions`);

@@ -155,6 +155,24 @@ h2{font-family:'Trebuchet MS',sans-serif;font-size:25px;letter-spacing:-.025em;l
 .theme-trial-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:10px;padding:10px;border:1px dashed var(--blue);border-radius:10px;font-size:12px;color:var(--muted)}
 .share-actions{margin-top:20px;flex-wrap:wrap}
 .over{padding:0 0 18px}.over-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.over-actions button{flex:1 1 auto;margin:0}.over p{font-size:13px;color:var(--muted)}
+.share-panel{margin:12px 0;padding:12px;border:1px solid rgba(82,122,180,.28);border-radius:16px;background:linear-gradient(135deg,#fff,#edf3fb)}
+[data-theme="cyber"] .share-panel{border-color:#30363d;background:linear-gradient(135deg,#161b22,#111820)}
+[data-theme="solar"] .share-panel{border-color:#e4cfb8;background:linear-gradient(135deg,#fffdfa,#f5e9d8)}
+[data-theme="nebula-gold"] .share-panel{border-color:#493764;background:linear-gradient(135deg,#211634,#181024)}
+[data-theme="void-eclipse"] .share-panel{border-color:#33334f;background:linear-gradient(135deg,#11111d,#090910)}
+.share-panel-heading{display:flex;align-items:center;justify-content:center;gap:7px;margin:0 0 9px;color:var(--blue);font-size:12px;font-weight:800;letter-spacing:.045em;text-align:center}
+.share-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.share-channel{min-width:0;min-height:40px;padding:8px 4px;border:1px solid transparent;border-radius:10px;color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
+.share-channel--whatsapp{background:#178c55}
+.share-channel--telegram{background:#147ead}
+.share-channel--x{background:#171a21;border-color:#4b5563}
+.share-copy{display:block;width:auto;min-height:38px;margin:7px auto 0;padding:7px 16px;border:0;border-radius:10px;background:linear-gradient(115deg,var(--blue),#9450d5);color:#fff;font-size:13px;font-weight:700}
+[data-theme="cyber"] .share-copy{color:#0d1117}
+[data-theme="nebula-gold"] .share-copy{color:#1b132b}
+.share-copy-field{width:100%;min-height:40px;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit;font-size:13px}
+.share-feedback{margin:7px 0 0;color:var(--muted);font-size:12px;text-align:center}
+.share-feedback:empty{display:none}
+.share-story-action{display:block;width:100%;margin:8px 0 0}
 .cross-promo{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .cross-promo-title{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:8px;letter-spacing:.04em}
 .cross-promo .tools{margin-top:0}

@@ -905,12 +905,55 @@ function buildChallengeShare(scoreOverride){
  const shareUrl=!isGitHubPages&&getTg()?.initData?botUrl:webUrl;
  const maxP=records.largest?2**records.largest:'32';
  const text=`🪐 Orbit Merge Record!\n🏆 Best Score: ${records.best.toLocaleString()}\n⭐ Highest Planet: ${maxP}\n🎮 Merges: ${(records.merges||0).toLocaleString()}\nCan you beat ${challengePts} PTS? Play free:`;
- return {challengePts,botUrl,shareUrl,text};
+ return {challengePts,botUrl,webUrl,shareUrl,text};
 }
 
-async function handleShareClick(scoreOverride,buttonEl){
+function openExternalShareTarget(url){
  const tg=getTg();
- const {shareUrl,text}=buildChallengeShare(scoreOverride);
+ if(tg?.openLink){try{tg.openLink(url);return;}catch{}}
+ window.open(url,'_blank','noopener,noreferrer');
+}
+
+async function copyChallengeLink(webUrl,buttonEl){
+ const panel=buttonEl?.closest('.share-panel');
+ const input=panel?.querySelector('.share-copy-field');
+ const feedback=panel?.querySelector('.share-feedback');
+ const originalLabel=buttonEl?.textContent||'Copy Link';
+ try{
+  await navigator.clipboard.writeText(webUrl);
+  if(feedback)feedback.textContent='Challenge link copied.';
+  if(buttonEl){
+   buttonEl.textContent='✓ Copied';
+   window.setTimeout(()=>{buttonEl.textContent=originalLabel;},1400);
+  }
+  return;
+ }catch{}
+ if(input){
+  input.value=webUrl;
+  input.hidden=false;
+  input.focus();
+  input.select();
+ }
+ let copied=false;
+ try{copied=document.execCommand('copy');}catch{}
+ if(feedback)feedback.textContent=copied?'Challenge link copied.':'Link selected. Copy it to share.';
+}
+
+async function handleShareClick(scoreOverride,buttonEl,channel='telegram'){
+ const tg=getTg();
+ const {shareUrl,webUrl,text}=buildChallengeShare(scoreOverride);
+ if(channel==='whatsapp'){
+  openExternalShareTarget(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${text} ${webUrl}`)}`);
+  return;
+ }
+ if(channel==='x'){
+  openExternalShareTarget(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(webUrl)}`);
+  return;
+ }
+ if(channel==='copy'){
+  await copyChallengeLink(webUrl,buttonEl);
+  return;
+ }
  if(!records.shareBonus){records.shareBonus=true;freeShuffle++;save();render();$('#status').textContent='🎉 Share bonus: +1 Free Shuffle added!';}
  if(tg?.initData&&typeof tg?.openTelegramLink==='function'){
   tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(text)}`);
@@ -933,8 +976,14 @@ function shareScoreToStory(scoreOverride){
  }catch{}
 }
 
-$('#share').addEventListener('click',()=>handleShareClick(records.best,$('#share')));
-$('#gameover-share').addEventListener('click',()=>handleShareClick(Math.max(records.best,game.score),$('#gameover-share')));
+$('#share').addEventListener('click',e=>handleShareClick(records.best,e.currentTarget,'telegram'));
+$('#gameover-share').addEventListener('click',e=>handleShareClick(Math.max(records.best,game.score),e.currentTarget,'telegram'));
+$('#records-share-whatsapp').addEventListener('click',e=>handleShareClick(records.best,e.currentTarget,'whatsapp'));
+$('#records-share-x').addEventListener('click',e=>handleShareClick(records.best,e.currentTarget,'x'));
+$('#records-share-copy').addEventListener('click',e=>handleShareClick(records.best,e.currentTarget,'copy'));
+$('#gameover-share-whatsapp').addEventListener('click',e=>handleShareClick(Math.max(records.best,game.score),e.currentTarget,'whatsapp'));
+$('#gameover-share-x').addEventListener('click',e=>handleShareClick(Math.max(records.best,game.score),e.currentTarget,'x'));
+$('#gameover-copy').addEventListener('click',e=>handleShareClick(Math.max(records.best,game.score),e.currentTarget,'copy'));
 $('#share-story').addEventListener('click',()=>shareScoreToStory(records.best));
 $('#gameover-story').addEventListener('click',()=>shareScoreToStory(Math.max(records.best,game.score)));
 

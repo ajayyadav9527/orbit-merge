@@ -343,19 +343,51 @@ test('F6-F10 end-to-end flows: R2 config, dead-end recovery, gameover ad loops, 
           setHeaderColor() {},
           setBackgroundColor() {},
           openTelegramLink(url) { window.__tgCalls.push(['openTelegramLink', url]); },
+          openLink(url) { window.__tgCalls.push(['openLink', url]); },
           shareToStory(media, params) { window.__tgCalls.push(['shareToStory', media, params]); }
         }
       };
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+        writeText: async text => { window.__copiedShareLink = String(text); }
+      }});
     }, makeFullOrbitState(600));
     await tgPage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
     await tgPage.waitForTimeout(150);
     assert.equal(await tgPage.isVisible('#gameover-story'), true);
+    assert.equal(await tgPage.isVisible('#gameover-share-whatsapp'), true);
+    assert.equal(await tgPage.isVisible('#gameover-share-x'), true);
+    assert.equal(await tgPage.isVisible('#gameover-copy'), true);
     await tgPage.click('#gameover-share');
+    await tgPage.click('#gameover-share-whatsapp');
+    await tgPage.click('#gameover-share-x');
+    await tgPage.click('#gameover-copy');
     await tgPage.click('#gameover-story');
+    await tgPage.waitForFunction(() => Boolean(window.__copiedShareLink));
     const calls = await tgPage.evaluate(() => window.__tgCalls);
     assert.ok(calls.some(([fn, u]) => fn === 'openTelegramLink' && u.includes('beat_600')));
+    assert.ok(calls.some(([fn, u]) => fn === 'openLink' && u.includes('api.whatsapp.com/send?text=') && u.includes('%3Fbeat%3D600')));
+    assert.ok(calls.some(([fn, u]) => fn === 'openLink' && u.includes('twitter.com/intent/tweet') && u.includes('%3Fbeat%3D600')));
+    assert.ok((await tgPage.evaluate(() => window.__copiedShareLink)).includes('beat=600'));
     assert.ok(calls.some(([fn, m, p]) => fn === 'shareToStory' && m.includes('game_banner.png') && p.widget_link.url.includes('beat_600')));
     await tgCtx.close();
+
+    // Copying a link is not a share-channel action and should not award the share bonus.
+    const copyCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const copyPage = await copyCtx.newPage();
+    await copyPage.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
+        writeText: async text => { window.__copiedShareLink = String(text); }
+      }});
+    });
+    await copyPage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+    await copyPage.waitForTimeout(150);
+    await copyPage.click('[data-view="records"]');
+    await copyPage.click('#records-share-copy');
+    await copyPage.waitForFunction(() => Boolean(window.__copiedShareLink));
+    const copyOnlyState = await copyPage.evaluate(() => JSON.parse(localStorage.getItem('orbit-merge-v1')));
+    assert.notEqual(copyOnlyState.records.shareBonus, true);
+    assert.doesNotMatch(await copyPage.textContent('#status'), /Share bonus/);
+    await copyCtx.close();
 
     // Test 4: Denied #theme-trial-btn feedback persists after render()
     const trialCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
